@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-display: "Sora", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #9bb6c9 transparent;
+}
+
+::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #9bb6c9;
+  border-radius: 999px;
+}
+
+:focus-visible {
+  outline: 2px solid #1a9e6e;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.card {
+  @apply bg-white rounded-xl border border-marine-100 shadow-card;
+}
+
+.btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+}
+.btn-primary {
+  @apply btn bg-tide-600 text-white hover:bg-tide-700;
+}
+.btn-secondary {
+  @apply btn bg-marine-800 text-white hover:bg-marine-900;
+}
+.btn-ghost {
+  @apply btn bg-transparent text-marine-700 hover:bg-marine-50;
+}
+.btn-danger {
+  @apply btn bg-white text-red-600 border border-red-200 hover:bg-red-50;
+}
+
+.input {
+  @apply w-full rounded-lg border border-marine-200 bg-white px-3 py-2 text-sm text-marine-900 placeholder:text-marine-300 focus:border-tide-500 focus:ring-1 focus:ring-tide-500 outline-none transition-colors;
+}
+
+.label {
+  @apply block text-xs font-medium text-marine-600 mb-1;
+}
