@@ -43,15 +43,23 @@ time blocking sincronizado com Google/Outlook Calendar (requer app OAuth aprovad
 
 ## 1. Configurar o Supabase
 
+**Projeto novo** (banco vazio):
 1. Crie um projeto em [supabase.com](https://supabase.com).
-2. Vá em **SQL Editor** e rode, **nesta ordem**:
-   1. Todo o conteúdo de [`supabase/schema.sql`](./supabase/schema.sql) — cria as tabelas `usuarios`, `demandas` e `demanda_comentarios`.
-   2. Todo o conteúdo de [`supabase/migration_002_produtividade_pessoal.sql`](./supabase/migration_002_produtividade_pessoal.sql) — adiciona Inbox, tags, energia, duração estimada, Meu Dia, projetos, subtarefas e recorrência. (Se você já tinha rodado só o `schema.sql` antes, rode a migração agora; ela não apaga nada do que já existe.)
-3. Vá em **Project Settings → API** e copie:
-   - `Project URL` → variável `NEXT_PUBLIC_SUPABASE_URL`
-   - `service_role` key (em "Project API keys") → variável `SUPABASE_SERVICE_ROLE_KEY`
+2. Vá em **SQL Editor** e rode todo o conteúdo de [`supabase/schema.sql`](./supabase/schema.sql) — já cria tudo (usuários, demandas, projetos, subtarefas, comentários, demandas de equipe).
 
-   ⚠️ A `service_role` key tem acesso total ao banco e **nunca** deve ser exposta no navegador. Neste projeto ela só é usada dentro das rotas `/api/**`, que rodam no servidor — nunca a coloque em um componente `"use client"`.
+**Banco já existente** (você já rodou o `schema.sql` antes, numa versão anterior do sistema):
+1. Rode [`supabase/migration_003_demandas_equipe.sql`](./supabase/migration_003_demandas_equipe.sql) — adiciona só o suporte a demandas de equipe. Não apaga nada.
+
+**Recomeçar do zero** (apaga tudo):
+1. Rode [`supabase/drop_all.sql`](./supabase/drop_all.sql).
+2. Rode `schema.sql` de novo.
+3. Rode `npm run seed` para recriar o usuário administrador.
+
+Depois disso, vá em **Project Settings → API** e copie:
+- `Project URL` → variável `NEXT_PUBLIC_SUPABASE_URL`
+- `service_role` key (em "Project API keys") → variável `SUPABASE_SERVICE_ROLE_KEY`
+
+⚠️ A `service_role` key tem acesso total ao banco e **nunca** deve ser exposta no navegador. Neste projeto ela só é usada dentro das rotas `/api/**`, que rodam no servidor — nunca a coloque em um componente `"use client"`.
 
 ## 2. Configurar variáveis de ambiente localmente
 
@@ -79,9 +87,9 @@ O script `npm run seed` cria (ou atualiza, se já existir) o usuário administra
 | Campo | Valor |
 |---|---|
 | Nome | SEU NOME |
-| E-mail | seuemail@xxx.com.br |
+| E-mail | seuemail@xxxx.com.br |
 | Login | seu.login |
-| Senha | suasenha |
+| Senha |suasenha |
 | Setor | TI |
 | Permissão | Administrador |
 
@@ -124,17 +132,38 @@ app/
   api/                        todas as rotas de backend (auth, demandas, subtarefas, projetos, usuarios, equipe)
 components/                   componentes de UI reutilizáveis
 lib/                          Supabase admin client, sessão/JWT, utilitários de domínio (inclui o parser de atalhos da captura rápida)
-supabase/schema.sql                          schema original (usuarios, demandas, comentarios)
-supabase/migration_002_produtividade_pessoal.sql  migração com Inbox/tags/energia/projetos/subtarefas/recorrência
+supabase/schema.sql                          schema completo e atualizado (rodar num projeto novo)
+supabase/migration_003_demandas_equipe.sql   migração incremental p/ bancos já existentes (demandas de equipe)
+supabase/drop_all.sql                        apaga tudo, para recomeçar do zero
 scripts/seed-admin.mjs        script para criar/atualizar o usuário administrador
 middleware.js                 protege rotas /dashboard e /api por sessão e permissão
 ```
 
 ## Permissões
 
-- **Administrador**: acesso total, incluindo a aba Usuários (criar/editar/desativar usuários) e exclusão de demandas.
-- **Gestor**: cria, edita e exclui demandas de qualquer setor.
-- **Colaborador**: cria e edita demandas, mas não pode excluí-las nem acessar a aba Usuários.
+- **Administrador**: acesso total — aba Usuários, vê e exclui qualquer demanda de qualquer setor, cria/exclui/atribui demandas de equipe de qualquer setor.
+- **Gestor**: enxerga as demandas (pessoais e de equipe) do **próprio setor** — pode alternar no Quadro e no Logbook entre "ver o setor inteiro" e "ver só as minhas". Pode excluir qualquer demanda do seu setor e criar/excluir/atribuir demandas de equipe do seu setor. Não vê outros setores nem acessa a aba Usuários.
+- **Colaborador**: cria e edita demandas livremente; só enxerga as próprias demandas pessoais (criadas por ele ou atribuídas a ele) e as demandas de equipe do seu setor; só pode **excluir as demandas pessoais que ele mesmo criou**.
+
+### Demandas de equipe
+
+Além das demandas pessoais (de sempre), um gestor ou administrador pode marcar uma demanda como **"Demanda em equipe"** e vinculá-la a um setor. A partir daí:
+
+- Todo mundo cujo setor (`usuarios.setor`) bate com o setor da demanda enxerga e pode editar essa demanda normalmente — título, descrição, prioridade, prazo, tags, subtarefas, comentários, status no quadro etc.
+- Só gestor/admin pode **excluir** a demanda de equipe ou **trocar o responsável** (`Direcionado a`) dela.
+- Atribuir a demanda a uma pessoa específica não tira ela do setor — ela continua aparecendo pra todo mundo do time, só passa a mostrar quem ficou responsável.
+
+### Visibilidade — quem vê o quê
+
+| | Demandas pessoais | Demandas de equipe |
+|---|---|---|
+| **Admin** | Todas, de todo mundo | Todas, de qualquer setor |
+| **Gestor** | As de quem é do seu setor | As do seu setor |
+| **Colaborador** | Só as próprias (criadas por ele ou atribuídas a ele) | As do seu setor |
+
+No Quadro e no Logbook, o gestor tem um alternador (**"Setor · [nome do setor]"** / **"Só minhas demandas"**) para filtrar entre ver tudo que tem acesso ou só o que é dele. "Meu Dia" é sempre estritamente pessoal, independente do papel — nunca mistura tarefas de outras pessoas, mesmo que o gestor tenha acesso mais amplo no Quadro.
+
+> **Nota de segurança:** a exclusão de demanda e a troca de responsável/setor de uma demanda de equipe já checam o setor de quem está pedindo (não só a permissão). O que ainda **não** é checado: um `PATCH` mudando outros campos (título, status, prioridade etc.) de uma demanda específica não confere se quem pediu tinha "direito de ver" aquele ID — só confere login. Isso só seria explorável por alguém que já soubesse adivinhar o UUID de uma demanda de outro setor, o que é bem improvável, mas é uma camada a mais que dá pra reforçar se algum dia isso importar.
 
 ## Segurança
 

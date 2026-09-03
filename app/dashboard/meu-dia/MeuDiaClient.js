@@ -28,16 +28,24 @@ export default function MeuDiaClient({ usuarioAtual, dadosIniciais }) {
     setProjetos((await resProjetos.json()).projetos || []);
   }
 
-  const doDia = useMemo(() => demandas.filter((d) => d.foco_dia_data === hoje), [demandas, hoje]);
+  // "Meu Dia" é sempre pessoal — mesmo que a lista de demandas visíveis seja
+  // mais ampla (gestor enxergando o setor inteiro), só entram aqui itens que
+  // são efetivamente meus (criados por mim ou atribuídos a mim).
+  const minhas = useMemo(
+    () => demandas.filter((d) => d.criado_por === usuarioAtual?.id || d.responsavel_id === usuarioAtual?.id),
+    [demandas, usuarioAtual]
+  );
+
+  const doDia = useMemo(() => minhas.filter((d) => d.foco_dia_data === hoje), [minhas, hoje]);
   const pendentes = doDia.filter((d) => d.status !== "concluido");
   const concluidasHoje = doDia.filter((d) => d.status === "concluido");
 
   const disponiveisParaHoje = useMemo(
     () =>
-      demandas.filter(
+      minhas.filter(
         (d) => d.status !== "inbox" && d.status !== "concluido" && d.foco_dia_data !== hoje
       ),
-    [demandas, hoje]
+    [minhas, hoje]
   );
 
   async function handleCriar(payload) {

@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import KanbanBoard from "@/components/KanbanBoard";
 import FiltrosBar from "@/components/FiltrosBar";
 import DemandaModal from "@/components/DemandaModal";
+import ModoVisualizacaoToggle from "@/components/ModoVisualizacaoToggle";
 import { SETORES_SUGERIDOS } from "@/lib/demandaUtils";
 
 export default function DashboardClient({ usuarioAtual, dadosIniciais }) {
@@ -12,6 +13,7 @@ export default function DashboardClient({ usuarioAtual, dadosIniciais }) {
   const [projetos, setProjetos] = useState(dadosIniciais?.projetos || []);
   const [demandaAberta, setDemandaAberta] = useState(null);
   const [criandoNova, setCriandoNova] = useState(false);
+  const [modoVisualizacao, setModoVisualizacao] = useState("equipe");
   const [filtros, setFiltros] = useState({
     busca: "",
     setor: "",
@@ -36,13 +38,20 @@ export default function DashboardClient({ usuarioAtual, dadosIniciais }) {
     setProjetos(dataProjetos.projetos || []);
   }
 
+  const ehGestor = usuarioAtual.permissao === "gestor";
+
+  const demandasBase = useMemo(() => {
+    if (!ehGestor || modoVisualizacao !== "minhas") return demandas;
+    return demandas.filter((d) => d.criado_por === usuarioAtual.id || d.responsavel_id === usuarioAtual.id);
+  }, [demandas, ehGestor, modoVisualizacao, usuarioAtual.id]);
+
   const setoresDisponiveis = useMemo(() => {
-    const setores = new Set([...SETORES_SUGERIDOS, ...demandas.map((d) => d.setor).filter(Boolean)]);
+    const setores = new Set([...SETORES_SUGERIDOS, ...demandasBase.map((d) => d.setor).filter(Boolean)]);
     return Array.from(setores).sort();
-  }, [demandas]);
+  }, [demandasBase]);
 
   const demandasFiltradas = useMemo(() => {
-    return demandas.filter((d) => {
+    return demandasBase.filter((d) => {
       if (filtros.busca && !d.titulo.toLowerCase().includes(filtros.busca.toLowerCase())) return false;
       if (filtros.setor && d.setor !== filtros.setor) return false;
       if (filtros.prioridade && d.prioridade !== filtros.prioridade) return false;
@@ -52,7 +61,7 @@ export default function DashboardClient({ usuarioAtual, dadosIniciais }) {
       if (filtros.projeto && d.projeto_id !== filtros.projeto) return false;
       return true;
     });
-  }, [demandas, filtros]);
+  }, [demandasBase, filtros]);
 
   async function handleMudarStatus(id, novoStatus) {
     setDemandas((atual) => atual.map((d) => (d.id === id ? { ...d, status: novoStatus } : d)));
@@ -94,11 +103,20 @@ export default function DashboardClient({ usuarioAtual, dadosIniciais }) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-4 sm:px-6 pt-6">
-        <h1 className="font-display text-2xl font-bold text-marine-900">Quadro de Demandas</h1>
-        <p className="text-sm text-marine-500 mt-1">
-          Acompanhe prioridades, prazos e responsáveis em cada etapa do fluxo.
-        </p>
+      <div className="px-4 sm:px-6 pt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl font-bold text-marine-900">Quadro de Demandas</h1>
+          <p className="text-sm text-marine-500 mt-1">
+            Acompanhe prioridades, prazos e responsáveis em cada etapa do fluxo.
+          </p>
+        </div>
+        {ehGestor && (
+          <ModoVisualizacaoToggle
+            modo={modoVisualizacao}
+            onMudar={setModoVisualizacao}
+            labelEquipe={`Setor · ${usuarioAtual.setor}`}
+          />
+        )}
       </div>
 
       <FiltrosBar

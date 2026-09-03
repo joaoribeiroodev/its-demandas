@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import PrioridadeBadge from "@/components/PrioridadeBadge";
+import ModoVisualizacaoToggle from "@/components/ModoVisualizacaoToggle";
 
 function chaveMes(dataISO) {
   const data = new Date(dataISO);
@@ -15,8 +16,17 @@ function labelMes(chave) {
   return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
 
-export default function LogbookClient({ dadosIniciais }) {
-  const demandas = dadosIniciais?.concluidas || [];
+export default function LogbookClient({ usuarioAtual, dadosIniciais }) {
+  const todasConcluidas = dadosIniciais?.concluidas || [];
+  const [modoVisualizacao, setModoVisualizacao] = useState("equipe");
+  const ehGestor = usuarioAtual?.permissao === "gestor";
+
+  const demandas = useMemo(() => {
+    if (!ehGestor || modoVisualizacao !== "minhas") return todasConcluidas;
+    return todasConcluidas.filter(
+      (d) => d.criado_por === usuarioAtual.id || d.responsavel_id === usuarioAtual.id
+    );
+  }, [todasConcluidas, ehGestor, modoVisualizacao, usuarioAtual]);
 
   const grupos = useMemo(() => {
     const mapa = new Map();
@@ -36,8 +46,19 @@ export default function LogbookClient({ dadosIniciais }) {
 
   return (
     <div className="px-4 sm:px-6 py-6 max-w-2xl mx-auto">
-      <h1 className="font-display text-2xl font-bold text-marine-900">Logbook</h1>
-      <p className="text-sm text-marine-500 mt-1 mb-2">Histórico do que já foi concluído.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
+        <div>
+          <h1 className="font-display text-2xl font-bold text-marine-900">Logbook</h1>
+          <p className="text-sm text-marine-500 mt-1">Histórico do que já foi concluído.</p>
+        </div>
+        {ehGestor && (
+          <ModoVisualizacaoToggle
+            modo={modoVisualizacao}
+            onMudar={setModoVisualizacao}
+            labelEquipe={`Setor · ${usuarioAtual.setor}`}
+          />
+        )}
+      </div>
       <p className="text-xs text-marine-400 mb-6">
         {concluidasUltimos7Dias} concluída(s) nos últimos 7 dias · {demandas.length} no total
       </p>

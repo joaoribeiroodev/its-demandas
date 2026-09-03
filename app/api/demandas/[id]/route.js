@@ -44,20 +44,21 @@ export async function PATCH(request, { params }) {
     return Response.json({ erro: "Demanda não encontrada." }, { status: 404 });
   }
 
-  // Numa demanda de equipe, só gestor/admin pode trocar o responsável ou o
-  // setor — ela continua pertencendo ao setor mesmo depois de atribuída,
-  // então quem não é gestor/admin pode mexer em tudo, menos nisso.
-  const ehColaborador = usuarioAtual.permissao === "colaborador";
-  if (demandaAtual.equipe && ehColaborador) {
+  // Numa demanda de equipe, só gestor/admin do MESMO setor pode trocar o
+  // responsável ou o setor — ela continua pertencendo ao setor mesmo depois
+  // de atribuída. Colaborador nunca pode; gestor de outro setor também não.
+  const ehAdmin = usuarioAtual.permissao === "admin";
+  const ehGestorDoMesmoSetor = usuarioAtual.permissao === "gestor" && demandaAtual.setor === usuarioAtual.setor;
+  if (demandaAtual.equipe && !ehAdmin && !ehGestorDoMesmoSetor) {
     if (atualizacoes.responsavel_id !== undefined) {
       return Response.json(
-        { erro: "Só gestores e administradores podem atribuir esta demanda de equipe a uma pessoa específica." },
+        { erro: "Só o gestor (ou admin) do setor pode atribuir esta demanda de equipe a uma pessoa específica." },
         { status: 403 }
       );
     }
     if (atualizacoes.setor !== undefined) {
       return Response.json(
-        { erro: "Só gestores e administradores podem mudar o setor de uma demanda de equipe." },
+        { erro: "Só o gestor (ou admin) do setor pode mudar o setor de uma demanda de equipe." },
         { status: 403 }
       );
     }
@@ -143,7 +144,7 @@ export async function DELETE(request, { params }) {
 
   const { data: demanda } = await supabase
     .from("demandas")
-    .select("id, criado_por, equipe")
+    .select("id, criado_por, responsavel_id, equipe, setor")
     .eq("id", params.id)
     .single();
 
@@ -151,13 +152,31 @@ export async function DELETE(request, { params }) {
     return Response.json({ erro: "Demanda não encontrada." }, { status: 404 });
   }
 
-  const ehGestorOuAdmin = ["admin", "gestor"].includes(usuarioAtual.permissao);
+  const ehAdmin = usuarioAtual.permissao === "admin";
+  const ehGestor = usuarioAtual.permissao === "gestor";
   const ehCriadorDeDemandaPessoal = !demanda.equipe && demanda.criado_por === usuarioAtual.id;
 
-  if (!ehGestorOuAdmin && !ehCriadorDeDemandaPessoal) {
+  let podeExcluir = ehAdmin || ehCriadorDeDemandaPessoal;
+
+  // Gestor só exclui dentro do próprio setor: demanda de equipe do seu
+  // setor, ou demanda pessoal de alguém (criador ou responsável) que é do
+  // seu setor.
+  if (!podeExcluir && ehGestor) {
+    if (demanda.equipe) {
+      podeExcluir = demanda.setor === usuarioAtual.setor;
+    } else {
+      const idsEnvolvidos = [demanda.criado_por, demanda.responsavel_id].filter(Boolean);
+      if (idsEnvolvidos.length) {
+        const { data: pessoas } = await supabase.from("usuarios").select("id, setor").in("id", idsEnvolvidos);
+        podeExcluir = (pessoas || []).some((p) => p.setor === usuarioAtual.setor);
+      }
+    }
+  }
+
+  if (!podeExcluir) {
     const mensagem = demanda.equipe
-      ? "Só gestores e administradores podem excluir demandas de equipe."
-      : "Você só pode excluir demandas que você mesmo criou.";
+      ? "Você só pode excluir demandas de equipe do seu próprio setor."
+      : "Você só pode excluir demandas suas ou, se for gestor, de alguém do seu setor.";
     return Response.json({ erro: mensagem }, { status: 403 });
   }
 
