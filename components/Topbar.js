@@ -23,7 +23,7 @@ export default function Topbar({ usuario }) {
     <header className="h-16 shrink-0 border-b border-marine-100 bg-white flex items-center justify-between px-3 sm:px-6 gap-2">
       <div className="flex items-center gap-2 min-w-0">
         <MobileNav usuario={usuario} />
-        <span className="lg:hidden font-display font-bold text-marine-900 truncate">Demandas</span>
+        <span className="lg:hidden font-display font-bold text-marine-900 truncate">ITS-Demandas</span>
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">

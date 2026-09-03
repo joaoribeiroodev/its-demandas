@@ -1,4 +1,12 @@
 const ICONS = {
+  painel: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.5" />
+      <rect x="13" y="3.5" width="7.5" height="4.5" rx="1.5" />
+      <rect x="13" y="10.5" width="7.5" height="10" rx="1.5" />
+      <rect x="3.5" y="13.5" width="7.5" height="7" rx="1.5" />
+    </svg>
+  ),
   inbox: (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
       <path d="M3 12h4.5l1.5 3h6l1.5-3H21" />
@@ -42,6 +50,7 @@ const ICONS = {
 export function getNavLinks(usuario) {
   const isAdmin = usuario?.permissao === "admin";
   return [
+    { href: "/dashboard/painel", label: "Painel", icon: "painel" },
     { href: "/dashboard/inbox", label: "Inbox", icon: "inbox" },
     { href: "/dashboard/meu-dia", label: "Meu Dia", icon: "meuDia" },
     { href: "/dashboard", label: "Quadro", icon: "quadro" },

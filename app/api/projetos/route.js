@@ -44,7 +44,7 @@ export async function POST(request) {
   const supabase = supabaseAdmin();
   const { data, error } = await supabase
     .from("projetos")
-    .insert({ nome, cor: body?.cor || "#1a9e6e", criado_por: usuarioAtual.id })
+    .insert({ nome, cor: body?.cor || "#8ac640", criado_por: usuarioAtual.id })
     .select("id, nome, cor, ativo, created_at")
     .single();
 

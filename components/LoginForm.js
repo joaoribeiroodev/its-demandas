@@ -41,7 +41,7 @@ export default function LoginForm() {
         <input
           id="identificador"
           className="input"
-          placeholder="seu.usuario"
+          placeholder="seu.login"
           value={identificador}
           onChange={(e) => setIdentificador(e.target.value)}
           autoFocus

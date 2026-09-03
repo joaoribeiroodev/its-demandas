@@ -1,8 +1,9 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "Demandas — Internacional Marítima",
-  description: "Gerenciamento de demandas por setor, baseado em Scrum e Kanban.",
+  title: "ITS-Demandas — Internacional Travessias Salvador",
+  description: "Gerenciamento de demandas pessoais e produtividade — Internacional Travessias Salvador.",
+  icons: { icon: "/logo.png" },
 };
 
 export default function RootLayout({ children }) {

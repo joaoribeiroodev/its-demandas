@@ -7,6 +7,7 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        // Navy exato extraído da logo (#00335e), com escala derivada.
         marine: {
           50: "#eef5fb",
           100: "#d6e8f6",
@@ -15,21 +16,24 @@ module.exports = {
           400: "#4a8fca",
           500: "#2c72ad",
           600: "#1f5686",
-          700: "#1b4569",
-          800: "#173853",
-          900: "#0f2436",
+          700: "#0d4570",
+          800: "#00335e",
+          900: "#00203d",
         },
+        // Verde exato extraído da logo (#8ac640 = tide-400). Botões e texto
+        // usam tide-600/700 (mais escuros) para manter contraste acessível
+        // com texto branco; tide-400 fica para acentos, badges e o selo.
         tide: {
-          50: "#eafbf3",
-          100: "#cdf5e2",
-          200: "#9be9c7",
-          300: "#63d7a8",
-          400: "#33bd88",
-          500: "#1a9e6e",
-          600: "#137e58",
-          700: "#126347",
-          800: "#124f3a",
-          900: "#0d3527",
+          50: "#f5faec",
+          100: "#e7f4d4",
+          200: "#cde9a9",
+          300: "#b0da79",
+          400: "#8ac640",
+          500: "#6a9835",
+          600: "#4a7a26",
+          700: "#3d6620",
+          800: "#2f4f19",
+          900: "#1f3611",
         },
         mist: "#f6f9f8",
       },

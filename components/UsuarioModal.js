@@ -56,7 +56,7 @@ export default function UsuarioModal({ usuario, onFechar, onSalvo }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-marine-900/40 backdrop-blur-sm flex items-start sm:items-center justify-center p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-marine-900/40 backdrop-blur-sm flex items-start justify-center p-4 py-6 sm:py-10 overflow-y-auto">
       <div className="card w-full max-w-lg my-6">
         <div className="flex items-center justify-between px-5 py-4 border-b border-marine-100">
           <h2 className="font-display font-semibold text-marine-900">

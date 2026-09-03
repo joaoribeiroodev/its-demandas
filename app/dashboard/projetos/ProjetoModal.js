@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-const CORES = ["#1a9e6e", "#2c72ad", "#d97757", "#a855f7", "#e11d48", "#0f2436"];
+const CORES = ["#8ac640", "#00335e", "#2c72ad", "#d97757", "#a855f7", "#00203d"];
 
 export default function ProjetoModal({ projeto, onFechar, onSalvo }) {
   const editando = Boolean(projeto);
@@ -36,7 +36,7 @@ export default function ProjetoModal({ projeto, onFechar, onSalvo }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-marine-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-marine-900/40 backdrop-blur-sm flex items-start justify-center p-4 py-6 sm:py-10 overflow-y-auto">
       <div className="card w-full max-w-sm p-5">
         <h2 className="font-display font-semibold text-marine-900 mb-4">
           {editando ? "Editar projeto" : "Novo projeto"}
@@ -55,7 +55,7 @@ export default function ProjetoModal({ projeto, onFechar, onSalvo }) {
                   type="button"
                   onClick={() => setCor(c)}
                   className="w-7 h-7 rounded-full border-2"
-                  style={{ backgroundColor: c, borderColor: cor === c ? "#0f2436" : "transparent" }}
+                  style={{ backgroundColor: c, borderColor: cor === c ? "#00203d" : "transparent" }}
                 />
               ))}
             </div>

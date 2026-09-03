@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import NavLinks from "./NavLinks";
 import { labelPermissao } from "./navLinksConfig";
 
@@ -46,9 +47,12 @@ export default function MobileNav({ usuario }) {
           />
           <div className="absolute inset-y-0 left-0 w-72 max-w-[85vw] bg-marine-900 text-white flex flex-col shadow-xl">
             <div className="flex items-center justify-between px-5 pt-6 pb-5">
-              <div className="flex flex-col gap-0.5">
-                <span className="font-display font-bold text-lg leading-tight">Demandas</span>
-                <span className="text-xs text-marine-300">Internacional Marítima</span>
+              <div className="flex items-center gap-2.5 min-w-0">
+                <Image src="/logo.png" alt="Internacional Travessias Salvador" width={34} height={34} className="rounded-full shrink-0" />
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <span className="font-display font-bold text-base leading-tight">ITS-Demandas</span>
+                  <span className="text-xs text-marine-300 truncate">Internacional Travessias</span>
+                </div>
               </div>
               <button
                 type="button"

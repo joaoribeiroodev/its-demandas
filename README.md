@@ -1,4 +1,4 @@
-# Gerenciador de Demandas Pessoais — Internacional Marítima
+# ITS-Demandas — Internacional Travessias Salvador
 
 Ferramenta de organização pessoal e produtividade individual no ambiente de
 trabalho — captura rápida, foco diário, quadro Kanban, projetos e histórico.
@@ -80,7 +80,7 @@ O script `npm run seed` cria (ou atualiza, se já existir) o usuário administra
 |---|---|
 | Nome | SEU NOME |
 | E-mail | seuemail@xxx.com.br |
-| Login | seu.usuario |
+| Login | seu.login |
 | Senha | suasenha |
 | Setor | TI |
 | Permissão | Administrador |

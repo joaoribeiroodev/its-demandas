@@ -160,9 +160,9 @@ export default function DemandaModal({ demanda, equipe, projetos, podeExcluir, o
   const noMeuDia = form.foco_dia_data === hojeISO();
 
   return (
-    <div className="fixed inset-0 z-50 bg-marine-900/40 backdrop-blur-sm flex items-start sm:items-center justify-center p-4 overflow-y-auto">
-      <div className="card w-full max-w-2xl my-6">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-marine-100">
+    <div className="fixed inset-0 z-50 bg-marine-900/40 backdrop-blur-sm flex items-start justify-center p-4 py-6 sm:py-10 overflow-y-auto">
+      <div className="card w-full max-w-2xl flex flex-col max-h-[calc(100vh-3rem)]">
+        <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-marine-100">
           <h2 className="font-display font-semibold text-marine-900">
             {editando ? "Editar demanda" : "Nova demanda"}
           </h2>
@@ -176,6 +176,7 @@ export default function DemandaModal({ demanda, equipe, projetos, podeExcluir, o
           </div>
         </div>
 
+        <div className="overflow-y-auto min-h-0 flex-1">
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div>
             <label className="label">Título</label>
@@ -436,6 +437,7 @@ export default function DemandaModal({ demanda, equipe, projetos, podeExcluir, o
             </form>
           </div>
         )}
+        </div>
       </div>
     </div>
   );

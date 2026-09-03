@@ -1,5 +1,5 @@
 -- =========================================================
--- Schema completo — Gerenciador de Demandas Pessoais
+-- Schema completo — ITS-Demandas
 -- Rode este arquivo inteiro no SQL Editor do seu projeto Supabase
 -- (em um projeto novo, ou depois de rodar drop_all.sql).
 -- =========================================================
