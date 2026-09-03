@@ -67,6 +67,19 @@ export default function LogbookClient({ usuarioAtual, dadosIniciais }) {
     setItemAberto(null);
   }
 
+  async function handleReabrirRapido(e, demanda) {
+    e.stopPropagation();
+    const res = await fetch(`/api/demandas/${demanda.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ encerrada: false }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setTodasConcluidas((atual) => atual.map((d) => (d.id === demanda.id ? data.demanda : d)));
+    }
+  }
+
   return (
     <div className="px-4 sm:px-6 py-6 max-w-2xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
@@ -103,10 +116,13 @@ export default function LogbookClient({ usuarioAtual, dadosIniciais }) {
                 const diasParaConcluir = diasEntreDatas(d.created_at, d.updated_at);
 
                 return (
-                  <button
+                  <div
                     key={d.id}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => setItemAberto(d)}
-                    className="w-full text-left card px-3.5 py-3 hover:border-tide-300 transition-colors"
+                    onKeyDown={(e) => e.key === "Enter" && setItemAberto(d)}
+                    className="w-full text-left card px-3.5 py-3 hover:border-tide-300 transition-colors cursor-pointer"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <p className="text-sm font-medium text-marine-800 truncate">
@@ -118,6 +134,11 @@ export default function LogbookClient({ usuarioAtual, dadosIniciais }) {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                      {d.encerrada && (
+                        <span className="inline-flex items-center rounded-md bg-marine-800 text-white text-[11px] font-medium px-2 py-0.5">
+                          ✓ Encerrada
+                        </span>
+                      )}
                       {d.setor && (
                         <span className="inline-flex items-center rounded-md bg-marine-50 text-marine-600 text-[11px] font-medium px-2 py-0.5">
                           {d.setor}
@@ -154,7 +175,19 @@ export default function LogbookClient({ usuarioAtual, dadosIniciais }) {
                       )}
                       <span className="ml-auto">Concluída em {new Date(d.updated_at).toLocaleDateString("pt-BR")}</span>
                     </div>
-                  </button>
+
+                    {d.encerrada && (
+                      <div className="mt-2 pt-2 border-t border-marine-50 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={(e) => handleReabrirRapido(e, d)}
+                          className="text-xs font-medium text-tide-700 hover:text-tide-800"
+                        >
+                          Reabrir
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>

@@ -13,7 +13,7 @@ const COR_COLUNA = {
   concluido: "bg-tide-600",
 };
 
-export default function KanbanBoard({ demandas, onMudarStatus, onAbrirDemanda }) {
+export default function KanbanBoard({ demandas, onMudarStatus, onAbrirDemanda, onConcluir }) {
   function handleDragEnd(result) {
     const { destination, source, draggableId } = result;
     if (!destination) return;
@@ -50,6 +50,7 @@ export default function KanbanBoard({ demandas, onMudarStatus, onAbrirDemanda })
                         demanda={demanda}
                         index={index}
                         onClick={onAbrirDemanda}
+                        onConcluir={onConcluir}
                       />
                     ))}
                     {provided.placeholder}

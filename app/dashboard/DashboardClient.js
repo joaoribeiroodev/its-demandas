@@ -33,7 +33,7 @@ export default function DashboardClient({ usuarioAtual, dadosIniciais }) {
     const dataDemandas = await resDemandas.json();
     const dataEquipe = await resEquipe.json();
     const dataProjetos = await resProjetos.json();
-    setDemandas((dataDemandas.demandas || []).filter((d) => d.status !== "inbox"));
+    setDemandas((dataDemandas.demandas || []).filter((d) => d.status !== "inbox" && !d.encerrada));
     setEquipe(dataEquipe.equipe || []);
     setProjetos(dataProjetos.projetos || []);
   }
@@ -83,6 +83,11 @@ export default function DashboardClient({ usuarioAtual, dadosIniciais }) {
 
   function handleSalvo(demandaSalva, proximaOcorrencia) {
     setDemandas((atual) => {
+      // Se acabou de ser encerrada (botão "Concluir Demanda" no modal), sai do Kanban.
+      if (demandaSalva.encerrada) {
+        const semEla = atual.filter((d) => d.id !== demandaSalva.id);
+        return proximaOcorrencia ? [proximaOcorrencia, ...semEla] : semEla;
+      }
       const existe = atual.some((d) => d.id === demandaSalva.id);
       let atualizado = existe
         ? atual.map((d) => (d.id === demandaSalva.id ? demandaSalva : d))
@@ -99,6 +104,16 @@ export default function DashboardClient({ usuarioAtual, dadosIniciais }) {
   function handleExcluido(id) {
     setDemandas((atual) => atual.filter((d) => d.id !== id));
     setDemandaAberta(null);
+  }
+
+  async function handleConcluir(demanda) {
+    setDemandas((atual) => atual.filter((d) => d.id !== demanda.id));
+    const res = await fetch(`/api/demandas/${demanda.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ encerrada: true }),
+    });
+    if (!res.ok) carregarDados();
   }
 
   return (
@@ -133,6 +148,7 @@ export default function DashboardClient({ usuarioAtual, dadosIniciais }) {
           demandas={demandasFiltradas}
           onMudarStatus={handleMudarStatus}
           onAbrirDemanda={setDemandaAberta}
+          onConcluir={handleConcluir}
         />
       </div>
 

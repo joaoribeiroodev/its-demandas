@@ -423,6 +423,36 @@ export default function DemandaModal({ demanda, equipe, projetos, usuarioAtual, 
             </label>
           </div>
 
+          {editando && demanda.status === "concluido" && (
+            <div className={`rounded-lg px-3 py-2.5 flex items-center justify-between gap-3 ${demanda.encerrada ? "bg-marine-50" : "bg-tide-50"}`}>
+              {demanda.encerrada ? (
+                <>
+                  <span className="text-sm text-marine-600">
+                    ✓ Demanda encerrada — arquivada no Logbook, fora do quadro.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handlePatchRapido({ encerrada: false })}
+                    className="btn-ghost text-xs shrink-0"
+                  >
+                    Reabrir
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span className="text-sm text-tide-800">Concluída no quadro — falta encerrar de vez.</span>
+                  <button
+                    type="button"
+                    onClick={() => handlePatchRapido({ encerrada: true })}
+                    className="btn-primary text-xs shrink-0"
+                  >
+                    Concluir Demanda
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+
           {editando && (
             <div>
               <label className="label">Status</label>

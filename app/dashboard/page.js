@@ -13,7 +13,7 @@ export default async function DashboardPage() {
   return (
     <DashboardClient
       usuarioAtual={usuario}
-      dadosIniciais={{ demandas: demandas.filter((d) => d.status !== "inbox"), equipe, projetos }}
+      dadosIniciais={{ demandas: demandas.filter((d) => d.status !== "inbox" && !d.encerrada), equipe, projetos }}
     />
   );
 }

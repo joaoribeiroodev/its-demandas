@@ -19,6 +19,7 @@ const CAMPOS_PERMITIDOS = [
   "projeto_id",
   "recorrente",
   "recorrencia_regra",
+  "encerrada",
 ];
 
 export async function PATCH(request, { params }) {
@@ -124,6 +125,12 @@ export async function PATCH(request, { params }) {
         .select(SELECT_DEMANDA)
         .single();
       proximaDemanda = nova || null;
+
+      // A ocorrência que acabou de ser concluída já foi substituída pela
+      // próxima — encerra ela automaticamente (sai do Kanban, fica só no
+      // Logbook), sem exigir o clique manual em "Concluir Demanda".
+      await supabase.from("demandas").update({ encerrada: true }).eq("id", params.id);
+      data.encerrada = true;
 
       // Duplica as subtarefas (desmarcadas) para a nova ocorrência.
       if (nova && data.subtarefas?.length) {

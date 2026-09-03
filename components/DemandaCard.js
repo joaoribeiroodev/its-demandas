@@ -11,7 +11,7 @@ const TOM_ESTILO = {
   neutro: "text-marine-400",
 };
 
-export default function DemandaCard({ demanda, index, onClick }) {
+export default function DemandaCard({ demanda, index, onClick, onConcluir }) {
   const prazo = prazoStatusLabel(demanda.prazo_data, demanda.status);
   const totalSubtarefas = demanda.subtarefas?.length || 0;
   const subtarefasConcluidas = demanda.subtarefas?.filter((s) => s.concluida).length || 0;
@@ -20,6 +20,11 @@ export default function DemandaCard({ demanda, index, onClick }) {
     // Enter ativa o clique (abre o modal). Espaço fica livre para o "lift"
     // de teclado da própria biblioteca de drag-and-drop.
     if (e.key === "Enter") onClick(demanda);
+  }
+
+  function handleConcluir(e) {
+    e.stopPropagation();
+    onConcluir(demanda);
   }
 
   return (
@@ -111,6 +116,16 @@ export default function DemandaCard({ demanda, index, onClick }) {
               {prazo.texto}
             </span>
           </div>
+
+          {demanda.status === "concluido" && (
+            <button
+              type="button"
+              onClick={handleConcluir}
+              className="text-xs font-medium text-white bg-tide-600 hover:bg-tide-700 rounded-lg py-1.5 transition-colors"
+            >
+              ✓ Concluir Demanda
+            </button>
+          )}
         </div>
       )}
     </Draggable>

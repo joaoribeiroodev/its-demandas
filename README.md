@@ -20,9 +20,9 @@ Feito para rodar **somente** com deploy na **Vercel** e banco de dados **Supabas
 **Captura e organização**
 - **Inbox**: captura rápida de qualquer coisa, sem precisar categorizar na hora. Suporta atalhos de texto: `#tag` (contexto), `!alta`/`!media`/`!baixa` (prioridade), `/hoje`/`/amanha`/`/semana` (data), `~15min`/`~1h` (duração estimada)
 - **Meu Dia**: visão isolada com só as tarefas planejadas para hoje, separado do resto do backlog
-- **Quadro Kanban**: Backlog → A Fazer → Em Andamento → Em Revisão → Concluído, com arrastar e soltar
+- **Quadro Kanban**: Backlog → A Fazer → Em Andamento → Em Revisão → Concluído, com arrastar e soltar. Chegar em "Concluído" não é o fim — um botão **"Concluir Demanda"** (no card ou no modal) encerra de vez o item, tirando-o do Kanban e mandando pro Logbook. Demandas recorrentes se encerram sozinhas quando a próxima ocorrência é criada.
 - **Projetos**: agrupamento dinâmico de demandas com progresso % automático
-- **Logbook**: histórico de tudo que foi concluído, agrupado por mês
+- **Logbook**: histórico de tudo que foi concluído, agrupado por mês, com todos os detalhes de cada item (clique para abrir) — inclusive a opção de **reabrir** uma demanda encerrada, trazendo ela de volta pro Kanban
 - **Arquivos**: aba central com todos os anexos (de demandas e projetos) que você tem acesso, com busca por nome e filtro por origem
 
 **Em cada demanda**
@@ -53,6 +53,8 @@ time blocking sincronizado com Google/Outlook Calendar (requer app OAuth aprovad
 **Banco já existente** (você já rodou o `schema.sql` antes, numa versão anterior do sistema):
 1. Rode [`supabase/migration_003_demandas_equipe.sql`](./supabase/migration_003_demandas_equipe.sql) — adiciona só o suporte a demandas de equipe. Não apaga nada.
 2. Rode [`supabase/migration_004_anexos.sql`](./supabase/migration_004_anexos.sql) — adiciona a tabela de anexos e cria o bucket `anexos` no Storage. Não apaga nada.
+3. Rode [`supabase/migration_005_setor_direcionado.sql`](./supabase/migration_005_setor_direcionado.sql) — adiciona o campo Setor Direcionado. Não apaga nada.
+4. Rode [`supabase/migration_006_encerrar_demanda.sql`](./supabase/migration_006_encerrar_demanda.sql) — adiciona o campo de demanda encerrada (arquivamento). Não apaga nada.
 
 **Recomeçar do zero** (apaga tudo):
 1. Rode [`supabase/drop_all.sql`](./supabase/drop_all.sql).
@@ -140,6 +142,8 @@ lib/                          Supabase admin client, sessão/JWT, utilitários d
 supabase/schema.sql                          schema completo e atualizado (rodar num projeto novo)
 supabase/migration_003_demandas_equipe.sql   migração incremental p/ bancos já existentes (demandas de equipe)
 supabase/migration_004_anexos.sql            migração incremental p/ bancos já existentes (anexos + bucket de storage)
+supabase/migration_005_setor_direcionado.sql migração incremental p/ bancos já existentes (campo Setor Direcionado)
+supabase/migration_006_encerrar_demanda.sql  migração incremental p/ bancos já existentes (encerrar/reabrir demanda)
 supabase/drop_all.sql                        apaga tudo, para recomeçar do zero
 scripts/seed-admin.mjs        script para criar/atualizar o usuário administrador
 middleware.js                 protege rotas /dashboard e /api por sessão e permissão

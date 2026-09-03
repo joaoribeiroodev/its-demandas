@@ -83,6 +83,12 @@ create table demandas (
   status text not null default 'inbox'
     check (status in ('inbox', 'backlog', 'todo', 'em_andamento', 'revisao', 'concluido')),
 
+  -- "Concluído" é uma coluna do Kanban como qualquer outra; "encerrada" é
+  -- um passo extra e opcional de arquivamento: ao encerrar, a demanda sai
+  -- do quadro Kanban (todas as colunas) e passa a existir só no Logbook,
+  -- com a possibilidade de ser reaberta por lá (o que zera este campo).
+  encerrada boolean not null default false,
+
   -- Recorrência. Ao concluir uma demanda recorrente, o backend cria
   -- automaticamente a próxima ocorrência com base em recorrencia_regra.
   -- recorrencia_regra guarda um destes formatos (campo "tipo" decide o resto):
@@ -108,6 +114,7 @@ create index idx_demandas_projeto on demandas (projeto_id);
 create index idx_demandas_foco_dia on demandas (foco_dia_data);
 create index idx_demandas_tags on demandas using gin (tags);
 create index idx_demandas_equipe on demandas (equipe);
+create index idx_demandas_encerrada on demandas (encerrada);
 
 -- ---------------------------------------------------------
 -- SUBTAREFAS (checklist dentro de uma demanda)
