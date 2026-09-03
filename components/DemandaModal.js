@@ -33,9 +33,10 @@ const VAZIO = {
   foco_dia_data: "",
   projeto_id: "",
   recorrencia_regra: null,
+  equipe: false,
 };
 
-export default function DemandaModal({ demanda, equipe, projetos, podeExcluir, onFechar, onSalvo, onExcluido }) {
+export default function DemandaModal({ demanda, equipe, projetos, usuarioAtual, onFechar, onSalvo, onExcluido }) {
   const editando = Boolean(demanda);
   const [form, setForm] = useState(editando ? mapDemandaParaForm(demanda) : VAZIO);
   const [erro, setErro] = useState("");
@@ -44,6 +45,16 @@ export default function DemandaModal({ demanda, equipe, projetos, podeExcluir, o
   const [novoComentario, setNovoComentario] = useState("");
   const [subtarefas, setSubtarefas] = useState(demanda?.subtarefas || []);
   const [mostrarPomodoro, setMostrarPomodoro] = useState(false);
+
+  const ehGestorOuAdmin = ["admin", "gestor"].includes(usuarioAtual?.permissao);
+  const ehEquipeExistente = Boolean(demanda?.equipe);
+  // Colaborador vendo uma demanda de equipe já existente: pode editar quase
+  // tudo, menos trocar o responsável ou o setor (isso é do gestor).
+  const camposDeEquipeTravados = editando && ehEquipeExistente && !ehGestorOuAdmin;
+  const setoresReais = Array.from(new Set((equipe || []).map((p) => p.setor).filter(Boolean))).sort();
+
+  const podeExcluir =
+    ehGestorOuAdmin || (editando && !demanda.equipe && demanda.criado_por === usuarioAtual?.id);
 
   useEffect(() => {
     if (!editando) return;
@@ -69,6 +80,7 @@ export default function DemandaModal({ demanda, equipe, projetos, podeExcluir, o
       foco_dia_data: d.foco_dia_data || "",
       projeto_id: d.projeto_id || "",
       recorrencia_regra: d.recorrente ? d.recorrencia_regra : null,
+      equipe: Boolean(d.equipe),
     };
   }
 
@@ -77,7 +89,7 @@ export default function DemandaModal({ demanda, equipe, projetos, podeExcluir, o
   }
 
   function montarPayload() {
-    return {
+    const payload = {
       titulo: form.titulo,
       descricao: form.descricao,
       setor: form.setor || null,
@@ -94,6 +106,11 @@ export default function DemandaModal({ demanda, equipe, projetos, podeExcluir, o
       recorrente: Boolean(form.recorrencia_regra),
       recorrencia_regra: form.recorrencia_regra || null,
     };
+    // "equipe" só é definido na criação — depois de criada, o tipo da
+    // demanda não muda mais (evita casos estranhos de converter pessoal
+    // em equipe e vice-versa no meio do caminho).
+    if (!editando) payload.equipe = form.equipe;
+    return payload;
   }
 
   async function handleSubmit(e) {
@@ -101,6 +118,10 @@ export default function DemandaModal({ demanda, equipe, projetos, podeExcluir, o
     setErro("");
     if (!form.titulo) {
       setErro("Escreva um título para a tarefa.");
+      return;
+    }
+    if (form.equipe && !form.setor) {
+      setErro("Escolha o setor responsável por esta demanda de equipe.");
       return;
     }
     setSalvando(true);
@@ -163,9 +184,16 @@ export default function DemandaModal({ demanda, equipe, projetos, podeExcluir, o
     <div className="fixed inset-0 z-50 bg-marine-900/40 backdrop-blur-sm flex items-start justify-center p-4 py-6 sm:py-10 overflow-y-auto">
       <div className="card w-full max-w-2xl flex flex-col max-h-[calc(100vh-3rem)]">
         <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-marine-100">
-          <h2 className="font-display font-semibold text-marine-900">
-            {editando ? "Editar demanda" : "Nova demanda"}
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 className="font-display font-semibold text-marine-900">
+              {editando ? "Editar demanda" : "Nova demanda"}
+            </h2>
+            {ehEquipeExistente && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-marine-50 text-marine-700 text-[11px] font-medium px-2 py-0.5">
+                👥 Equipe · {demanda.setor}
+              </span>
+            )}
+          </div>
           <div className="flex items-center gap-3">
             {editando && (
               <SnoozeMenu onAdiar={(dataAlvo) => handlePatchRapido({ foco_dia_data: dataAlvo })} />
@@ -196,29 +224,61 @@ export default function DemandaModal({ demanda, equipe, projetos, podeExcluir, o
             <TagsInput tags={form.tags} onChange={(t) => atualizar("tags", t)} />
           </div>
 
+          {!editando && ehGestorOuAdmin && (
+            <label className="flex items-start gap-2.5 text-sm text-marine-700 bg-marine-50 rounded-lg px-3 py-2.5">
+              <input
+                type="checkbox"
+                checked={form.equipe}
+                onChange={(e) => atualizar("equipe", e.target.checked)}
+                className="w-4 h-4 mt-0.5 rounded border-marine-300 text-tide-600 focus:ring-tide-500"
+              />
+              <span>
+                <span className="font-medium">Demanda em equipe</span> — fica visível para todo mundo do setor
+                escolhido abaixo. Só gestores e administradores podem excluí-la ou atribuí-la a uma pessoa
+                específica depois.
+              </span>
+            </label>
+          )}
+
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
               <label className="label">Setor</label>
-              <input
-                className="input"
-                list="setores-sugeridos"
-                value={form.setor}
-                onChange={(e) => atualizar("setor", e.target.value)}
-                placeholder="Opcional"
-              />
-              <datalist id="setores-sugeridos">
-                {SETORES_SUGERIDOS.map((s) => (
-                  <option key={s} value={s} />
-                ))}
-              </datalist>
+              {camposDeEquipeTravados ? (
+                <input className="input bg-marine-50 text-marine-500" value={form.setor} disabled />
+              ) : form.equipe ? (
+                <select className="input" value={form.setor} onChange={(e) => atualizar("setor", e.target.value)} required>
+                  <option value="">Selecione o setor...</option>
+                  {setoresReais.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <>
+                  <input
+                    className="input"
+                    list="setores-sugeridos"
+                    value={form.setor}
+                    onChange={(e) => atualizar("setor", e.target.value)}
+                    placeholder="Opcional"
+                  />
+                  <datalist id="setores-sugeridos">
+                    {SETORES_SUGERIDOS.map((s) => (
+                      <option key={s} value={s} />
+                    ))}
+                  </datalist>
+                </>
+              )}
             </div>
 
             <div>
               <label className="label">Direcionado a</label>
               <select
-                className="input"
+                className="input disabled:bg-marine-50 disabled:text-marine-500"
                 value={form.responsavel_id}
                 onChange={(e) => atualizar("responsavel_id", e.target.value)}
+                disabled={camposDeEquipeTravados}
               >
                 <option value="">Sem responsável definido</option>
                 {equipe.map((pessoa) => (
@@ -227,6 +287,11 @@ export default function DemandaModal({ demanda, equipe, projetos, podeExcluir, o
                   </option>
                 ))}
               </select>
+              {camposDeEquipeTravados && (
+                <p className="text-[11px] text-marine-400 mt-1">
+                  Só gestores e administradores podem atribuir esta demanda a uma pessoa específica.
+                </p>
+              )}
             </div>
           </div>
 

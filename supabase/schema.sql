@@ -52,6 +52,12 @@ create table demandas (
   responsavel_id uuid references usuarios(id) on delete set null,
   tags text[] not null default '{}',
 
+  -- Demanda de equipe: pertence a um setor inteiro (todo mundo daquele
+  -- setor visualiza e usa), não a uma pessoa. Só gestor/admin pode criar,
+  -- excluir ou atribuir (responsavel_id) uma demanda de equipe — mas ela
+  -- continua pertencendo ao setor mesmo depois de atribuída.
+  equipe boolean not null default false,
+
   -- Priorização e esforço
   prioridade text not null default 'media'
     check (prioridade in ('baixa', 'media', 'alta')),
@@ -85,7 +91,9 @@ create table demandas (
 
   criado_por uuid references usuarios(id) on delete set null,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+
+  constraint demandas_equipe_setor_check check (not equipe or setor is not null)
 );
 
 create index idx_demandas_status on demandas (status);
@@ -94,6 +102,7 @@ create index idx_demandas_responsavel on demandas (responsavel_id);
 create index idx_demandas_projeto on demandas (projeto_id);
 create index idx_demandas_foco_dia on demandas (foco_dia_data);
 create index idx_demandas_tags on demandas using gin (tags);
+create index idx_demandas_equipe on demandas (equipe);
 
 -- ---------------------------------------------------------
 -- SUBTAREFAS (checklist dentro de uma demanda)

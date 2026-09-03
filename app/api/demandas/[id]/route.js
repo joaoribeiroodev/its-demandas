@@ -32,13 +32,6 @@ export async function PATCH(request, { params }) {
     if (body[campo] !== undefined) atualizacoes[campo] = body[campo];
   }
 
-  if (
-    atualizacoes.status &&
-    !["inbox", "backlog", "todo", "em_andamento", "revisao", "concluido"].includes(atualizacoes.status)
-  ) {
-    return Response.json({ erro: "Status inválido." }, { status: 400 });
-  }
-
   const supabase = supabaseAdmin();
 
   const { data: demandaAtual } = await supabase
@@ -46,6 +39,36 @@ export async function PATCH(request, { params }) {
     .select("*")
     .eq("id", params.id)
     .single();
+
+  if (!demandaAtual) {
+    return Response.json({ erro: "Demanda não encontrada." }, { status: 404 });
+  }
+
+  // Numa demanda de equipe, só gestor/admin pode trocar o responsável ou o
+  // setor — ela continua pertencendo ao setor mesmo depois de atribuída,
+  // então quem não é gestor/admin pode mexer em tudo, menos nisso.
+  const ehColaborador = usuarioAtual.permissao === "colaborador";
+  if (demandaAtual.equipe && ehColaborador) {
+    if (atualizacoes.responsavel_id !== undefined) {
+      return Response.json(
+        { erro: "Só gestores e administradores podem atribuir esta demanda de equipe a uma pessoa específica." },
+        { status: 403 }
+      );
+    }
+    if (atualizacoes.setor !== undefined) {
+      return Response.json(
+        { erro: "Só gestores e administradores podem mudar o setor de uma demanda de equipe." },
+        { status: 403 }
+      );
+    }
+  }
+
+  if (
+    atualizacoes.status &&
+    !["inbox", "backlog", "todo", "em_andamento", "revisao", "concluido"].includes(atualizacoes.status)
+  ) {
+    return Response.json({ erro: "Status inválido." }, { status: 400 });
+  }
 
   // Se o prazo (valor ou unidade) mudou, recalcula a data alvo a partir de hoje.
   if (atualizacoes.prazo_valor !== undefined || atualizacoes.prazo_unidade !== undefined) {
@@ -115,11 +138,29 @@ export async function PATCH(request, { params }) {
 export async function DELETE(request, { params }) {
   const usuarioAtual = await getUsuarioAtual();
   if (!usuarioAtual) return respostaNaoAutenticado();
-  if (!["admin", "gestor"].includes(usuarioAtual.permissao)) {
-    return Response.json({ erro: "Sem permissão para excluir demandas." }, { status: 403 });
-  }
 
   const supabase = supabaseAdmin();
+
+  const { data: demanda } = await supabase
+    .from("demandas")
+    .select("id, criado_por, equipe")
+    .eq("id", params.id)
+    .single();
+
+  if (!demanda) {
+    return Response.json({ erro: "Demanda não encontrada." }, { status: 404 });
+  }
+
+  const ehGestorOuAdmin = ["admin", "gestor"].includes(usuarioAtual.permissao);
+  const ehCriadorDeDemandaPessoal = !demanda.equipe && demanda.criado_por === usuarioAtual.id;
+
+  if (!ehGestorOuAdmin && !ehCriadorDeDemandaPessoal) {
+    const mensagem = demanda.equipe
+      ? "Só gestores e administradores podem excluir demandas de equipe."
+      : "Você só pode excluir demandas que você mesmo criou.";
+    return Response.json({ erro: mensagem }, { status: 403 });
+  }
+
   const { error } = await supabase.from("demandas").delete().eq("id", params.id);
   if (error) return Response.json({ erro: error.message }, { status: 400 });
   return Response.json({ ok: true });

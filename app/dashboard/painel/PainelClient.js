@@ -1,18 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import {
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  BarChart,
-  Bar,
-  Cell,
-} from "recharts";
+import { useMemo } from "react";
+import dynamic from "next/dynamic";
 import MetricCard from "@/components/MetricCard";
 import PrioridadeBadge from "@/components/PrioridadeBadge";
 import {
@@ -22,18 +11,21 @@ import {
   formatarData,
 } from "@/lib/demandaUtils";
 
-const CORES_PRIORIDADE = ["#4a8fca", "#d97706", "#dc2626"]; // baixa, média, alta (combina com PrioridadeBadge)
+// Carregado só quando necessário: recharts é uma dependência pesada e não
+// deve fazer parte do JS inicial da página (cards e lista aparecem na hora,
+// os gráficos "encaixam" alguns instantes depois).
+const GraficosPainel = dynamic(() => import("@/components/GraficosPainel"), {
+  ssr: false,
+  loading: () => (
+    <div className="grid lg:grid-cols-2 gap-4 mb-6">
+      <div className="card p-4 h-[280px] animate-pulse bg-marine-50/60" />
+      <div className="card p-4 h-[280px] animate-pulse bg-marine-50/60" />
+    </div>
+  ),
+});
 
-export default function PainelClient({ usuarioAtual }) {
-  const [demandas, setDemandas] = useState([]);
-  const [carregando, setCarregando] = useState(true);
-
-  useEffect(() => {
-    fetch("/api/demandas")
-      .then((r) => r.json())
-      .then((data) => setDemandas(data.demandas || []))
-      .finally(() => setCarregando(false));
-  }, []);
+export default function PainelClient({ usuarioAtual, dadosIniciais }) {
+  const demandas = dadosIniciais?.demandas || [];
 
   const minhas = useMemo(
     () =>
@@ -55,14 +47,6 @@ export default function PainelClient({ usuarioAtual }) {
         .slice(0, 5),
     [minhas]
   );
-
-  if (carregando) {
-    return (
-      <div className="px-4 sm:px-6 py-6">
-        <p className="text-sm text-marine-400">Carregando painel...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="px-4 sm:px-6 py-6 max-w-5xl mx-auto">
@@ -88,39 +72,7 @@ export default function PainelClient({ usuarioAtual }) {
             />
           </div>
 
-          <div className="grid lg:grid-cols-2 gap-4 mb-6">
-            <div className="card p-4">
-              <h2 className="text-sm font-semibold text-marine-800 mb-1">Evolução — concluídas por semana</h2>
-              <p className="text-xs text-marine-400 mb-4">Últimas 8 semanas</p>
-              <ResponsiveContainer width="100%" height={220}>
-                <LineChart data={evolucao} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#eef1f4" />
-                  <XAxis dataKey="semana" tick={{ fontSize: 11, fill: "#66859e" }} axisLine={{ stroke: "#d6e8f6" }} tickLine={false} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "#66859e" }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, borderColor: "#d6e8f6" }} />
-                  <Line type="monotone" dataKey="concluidas" stroke="#4a7a26" strokeWidth={2.5} dot={{ r: 3, fill: "#4a7a26" }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-
-            <div className="card p-4">
-              <h2 className="text-sm font-semibold text-marine-800 mb-1">Concluídas por prioridade</h2>
-              <p className="text-xs text-marine-400 mb-4">Todo o histórico</p>
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={distribuicao} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#eef1f4" />
-                  <XAxis dataKey="prioridade" tick={{ fontSize: 11, fill: "#66859e" }} axisLine={{ stroke: "#d6e8f6" }} tickLine={false} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "#66859e" }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, borderColor: "#d6e8f6" }} />
-                  <Bar dataKey="quantidade" radius={[4, 4, 0, 0]}>
-                    {distribuicao.map((_, i) => (
-                      <Cell key={i} fill={CORES_PRIORIDADE[i]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+          <GraficosPainel evolucao={evolucao} distribuicao={distribuicao} />
 
           {metricas.tempoMedioDias !== null && (
             <div className="card p-4 mb-6 flex items-center justify-between">

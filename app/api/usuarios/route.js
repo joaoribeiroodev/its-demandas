@@ -1,20 +1,19 @@
 import bcrypt from "bcryptjs";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { getUsuarioAtual, respostaNaoAutenticado, respostaSemPermissao } from "@/lib/authServer";
+import { buscarUsuarios } from "@/lib/dataServer";
 
 export async function GET() {
   const usuarioAtual = await getUsuarioAtual();
   if (!usuarioAtual) return respostaNaoAutenticado();
   if (usuarioAtual.permissao !== "admin") return respostaSemPermissao();
 
-  const supabase = supabaseAdmin();
-  const { data, error } = await supabase
-    .from("usuarios")
-    .select("id, nome, email, login, setor, permissao, ativo, created_at")
-    .order("nome", { ascending: true });
-
-  if (error) return Response.json({ erro: error.message }, { status: 500 });
-  return Response.json({ usuarios: data });
+  try {
+    const usuarios = await buscarUsuarios();
+    return Response.json({ usuarios });
+  } catch (error) {
+    return Response.json({ erro: error.message }, { status: 500 });
+  }
 }
 
 export async function POST(request) {

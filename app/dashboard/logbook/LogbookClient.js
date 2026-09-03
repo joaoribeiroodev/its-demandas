@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import PrioridadeBadge from "@/components/PrioridadeBadge";
 
 function chaveMes(dataISO) {
@@ -15,16 +15,8 @@ function labelMes(chave) {
   return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
 
-export default function LogbookClient() {
-  const [demandas, setDemandas] = useState([]);
-  const [carregando, setCarregando] = useState(true);
-
-  useEffect(() => {
-    fetch("/api/demandas")
-      .then((r) => r.json())
-      .then((data) => setDemandas((data.demandas || []).filter((d) => d.status === "concluido")))
-      .finally(() => setCarregando(false));
-  }, []);
+export default function LogbookClient({ dadosIniciais }) {
+  const demandas = dadosIniciais?.concluidas || [];
 
   const grupos = useMemo(() => {
     const mapa = new Map();
@@ -50,8 +42,7 @@ export default function LogbookClient() {
         {concluidasUltimos7Dias} concluída(s) nos últimos 7 dias · {demandas.length} no total
       </p>
 
-      {carregando && <p className="text-sm text-marine-400">Carregando...</p>}
-      {!carregando && grupos.length === 0 && (
+      {grupos.length === 0 && (
         <p className="text-sm text-marine-400 text-center py-10">Nada concluído ainda.</p>
       )}
 

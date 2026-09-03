@@ -47,8 +47,13 @@ export default function DemandaCard({ demanda, index, onClick }) {
           {(demanda.setor || demanda.projeto || demanda.energia) && (
             <div className="flex flex-wrap gap-1">
               {demanda.setor && (
-                <span className="inline-flex items-center rounded-md bg-marine-50 text-marine-600 text-[11px] font-medium px-2 py-0.5">
-                  {demanda.setor}
+                <span
+                  className={clsx(
+                    "inline-flex items-center gap-1 rounded-md text-[11px] font-medium px-2 py-0.5",
+                    demanda.equipe ? "bg-marine-800 text-white" : "bg-marine-50 text-marine-600"
+                  )}
+                >
+                  {demanda.equipe && "👥"} {demanda.setor}
                 </span>
               )}
               {demanda.projeto && (

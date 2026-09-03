@@ -1,16 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import KanbanBoard from "@/components/KanbanBoard";
 import FiltrosBar from "@/components/FiltrosBar";
 import DemandaModal from "@/components/DemandaModal";
 import { SETORES_SUGERIDOS } from "@/lib/demandaUtils";
 
-export default function DashboardClient({ usuarioAtual }) {
-  const [demandas, setDemandas] = useState([]);
-  const [equipe, setEquipe] = useState([]);
-  const [projetos, setProjetos] = useState([]);
-  const [carregando, setCarregando] = useState(true);
+export default function DashboardClient({ usuarioAtual, dadosIniciais }) {
+  const [demandas, setDemandas] = useState(dadosIniciais?.demandas || []);
+  const [equipe, setEquipe] = useState(dadosIniciais?.equipe || []);
+  const [projetos, setProjetos] = useState(dadosIniciais?.projetos || []);
   const [demandaAberta, setDemandaAberta] = useState(null);
   const [criandoNova, setCriandoNova] = useState(false);
   const [filtros, setFiltros] = useState({
@@ -23,12 +22,7 @@ export default function DashboardClient({ usuarioAtual }) {
     projeto: "",
   });
 
-  useEffect(() => {
-    carregarDados();
-  }, []);
-
   async function carregarDados() {
-    setCarregando(true);
     const [resDemandas, resEquipe, resProjetos] = await Promise.all([
       fetch("/api/demandas"),
       fetch("/api/equipe"),
@@ -40,7 +34,6 @@ export default function DashboardClient({ usuarioAtual }) {
     setDemandas((dataDemandas.demandas || []).filter((d) => d.status !== "inbox"));
     setEquipe(dataEquipe.equipe || []);
     setProjetos(dataProjetos.projetos || []);
-    setCarregando(false);
   }
 
   const setoresDisponiveis = useMemo(() => {
@@ -99,8 +92,6 @@ export default function DashboardClient({ usuarioAtual }) {
     setDemandaAberta(null);
   }
 
-  const podeExcluir = ["admin", "gestor"].includes(usuarioAtual.permissao);
-
   return (
     <div className="flex flex-col h-full">
       <div className="px-4 sm:px-6 pt-6">
@@ -119,26 +110,20 @@ export default function DashboardClient({ usuarioAtual }) {
         onNovaDemanda={() => setCriandoNova(true)}
       />
 
-      {carregando ? (
-        <div className="flex-1 flex items-center justify-center text-marine-400 text-sm">
-          Carregando demandas...
-        </div>
-      ) : (
-        <div className="flex-1 min-h-0">
-          <KanbanBoard
-            demandas={demandasFiltradas}
-            onMudarStatus={handleMudarStatus}
-            onAbrirDemanda={setDemandaAberta}
-          />
-        </div>
-      )}
+      <div className="flex-1 min-h-0">
+        <KanbanBoard
+          demandas={demandasFiltradas}
+          onMudarStatus={handleMudarStatus}
+          onAbrirDemanda={setDemandaAberta}
+        />
+      </div>
 
       {(demandaAberta || criandoNova) && (
         <DemandaModal
           demanda={demandaAberta}
           equipe={equipe}
           projetos={projetos}
-          podeExcluir={podeExcluir}
+          usuarioAtual={usuarioAtual}
           onFechar={() => {
             setDemandaAberta(null);
             setCriandoNova(false);

@@ -1,5 +1,7 @@
+import { buscarProjetosComProgresso } from "@/lib/dataServer";
 import ProjetosClient from "./ProjetosClient";
 
-export default function ProjetosPage() {
-  return <ProjetosClient />;
+export default async function ProjetosPage() {
+  const projetos = await buscarProjetosComProgresso();
+  return <ProjetosClient dadosIniciais={{ projetos }} />;
 }

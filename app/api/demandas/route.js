@@ -1,19 +1,18 @@
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { getUsuarioAtual, respostaNaoAutenticado } from "@/lib/authServer";
 import { calcularPrazoData, SELECT_DEMANDA } from "@/lib/demandaUtils";
+import { buscarDemandas } from "@/lib/dataServer";
 
 export async function GET() {
   const usuarioAtual = await getUsuarioAtual();
   if (!usuarioAtual) return respostaNaoAutenticado();
 
-  const supabase = supabaseAdmin();
-  const { data, error } = await supabase
-    .from("demandas")
-    .select(SELECT_DEMANDA)
-    .order("created_at", { ascending: false });
-
-  if (error) return Response.json({ erro: error.message }, { status: 500 });
-  return Response.json({ demandas: data });
+  try {
+    const demandas = await buscarDemandas(usuarioAtual);
+    return Response.json({ demandas });
+  } catch (error) {
+    return Response.json({ erro: error.message }, { status: 500 });
+  }
 }
 
 export async function POST(request) {
@@ -36,6 +35,7 @@ export async function POST(request) {
     projeto_id,
     recorrente,
     recorrencia_regra,
+    equipe,
     // Se não vier status explícito, uma captura mínima (só título) cai no
     // Inbox; se vier com os campos de organização já preenchidos (fluxo do
     // modal "Nova demanda" no quadro), começa direto no Backlog.
@@ -55,11 +55,22 @@ export async function POST(request) {
     return Response.json({ erro: "Nível de energia inválido." }, { status: 400 });
   }
 
+  const ehEquipe = Boolean(equipe);
+  if (ehEquipe) {
+    if (!["admin", "gestor"].includes(usuarioAtual.permissao)) {
+      return Response.json({ erro: "Só administradores e gestores podem criar demandas de equipe." }, { status: 403 });
+    }
+    if (!setor) {
+      return Response.json({ erro: "Demandas de equipe precisam de um setor." }, { status: 400 });
+    }
+  }
+
   const prazo_data = prazo_valor && prazo_unidade
     ? calcularPrazoData(prazo_valor, prazo_unidade).toISOString().slice(0, 10)
     : null;
 
-  const statusInicial = status || (setor && prioridade ? "backlog" : "inbox");
+  // Demanda de equipe já nasce organizada — não faz sentido passar pelo Inbox pessoal.
+  const statusInicial = status || (ehEquipe || (setor && prioridade) ? "backlog" : "inbox");
 
   const supabase = supabaseAdmin();
   const { data, error } = await supabase
@@ -82,6 +93,7 @@ export async function POST(request) {
       projeto_id: projeto_id || null,
       recorrente: Boolean(recorrente),
       recorrencia_regra: recorrente ? recorrencia_regra : null,
+      equipe: ehEquipe,
     })
     .select(SELECT_DEMANDA)
     .single();

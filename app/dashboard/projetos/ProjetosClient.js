@@ -1,24 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import ProjetoModal from "./ProjetoModal";
 
-export default function ProjetosClient() {
-  const [projetos, setProjetos] = useState([]);
-  const [carregando, setCarregando] = useState(true);
+export default function ProjetosClient({ dadosIniciais }) {
+  const [projetos, setProjetos] = useState(dadosIniciais?.projetos || []);
   const [modalAberto, setModalAberto] = useState(false);
   const [editando, setEditando] = useState(null);
 
-  useEffect(() => {
-    carregar();
-  }, []);
-
   async function carregar() {
-    setCarregando(true);
     const res = await fetch("/api/projetos");
     const data = await res.json();
     setProjetos(data.projetos || []);
-    setCarregando(false);
   }
 
   function handleSalvo(projetoSalvo) {
@@ -36,6 +29,7 @@ export default function ProjetosClient() {
     if (!confirm(`Arquivar o projeto "${projeto.nome}"? As demandas vinculadas continuam existindo.`)) return;
     const res = await fetch(`/api/projetos/${projeto.id}`, { method: "DELETE" });
     if (res.ok) setProjetos((atual) => atual.filter((p) => p.id !== projeto.id));
+    else carregar();
   }
 
   return (
@@ -56,9 +50,7 @@ export default function ProjetosClient() {
         </button>
       </div>
 
-      {carregando && <p className="text-sm text-marine-400">Carregando...</p>}
-
-      {!carregando && projetos.length === 0 && (
+      {projetos.length === 0 && (
         <p className="text-sm text-marine-400 text-center py-10">Nenhum projeto criado ainda.</p>
       )}
 

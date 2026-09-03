@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import CapturaRapida from "@/components/CapturaRapida";
 import DemandaModal from "@/components/DemandaModal";
 import PrioridadeBadge from "@/components/PrioridadeBadge";
@@ -8,22 +8,16 @@ import EnergiaBadge from "@/components/EnergiaBadge";
 import SnoozeMenu from "@/components/SnoozeMenu";
 import { hojeISO, formatarDuracao } from "@/lib/demandaUtils";
 
-export default function MeuDiaClient({ usuarioAtual }) {
-  const [demandas, setDemandas] = useState([]);
-  const [equipe, setEquipe] = useState([]);
-  const [projetos, setProjetos] = useState([]);
-  const [carregando, setCarregando] = useState(true);
+export default function MeuDiaClient({ usuarioAtual, dadosIniciais }) {
+  const [demandas, setDemandas] = useState(dadosIniciais?.demandas || []);
+  const [equipe, setEquipe] = useState(dadosIniciais?.equipe || []);
+  const [projetos, setProjetos] = useState(dadosIniciais?.projetos || []);
   const [itemAberto, setItemAberto] = useState(null);
   const [selecaoRapida, setSelecaoRapida] = useState("");
 
   const hoje = hojeISO();
 
-  useEffect(() => {
-    carregar();
-  }, []);
-
   async function carregar() {
-    setCarregando(true);
     const [resDemandas, resEquipe, resProjetos] = await Promise.all([
       fetch("/api/demandas"),
       fetch("/api/equipe"),
@@ -32,7 +26,6 @@ export default function MeuDiaClient({ usuarioAtual }) {
     setDemandas((await resDemandas.json()).demandas || []);
     setEquipe((await resEquipe.json()).equipe || []);
     setProjetos((await resProjetos.json()).projetos || []);
-    setCarregando(false);
   }
 
   const doDia = useMemo(() => demandas.filter((d) => d.foco_dia_data === hoje), [demandas, hoje]);
@@ -64,13 +57,15 @@ export default function MeuDiaClient({ usuarioAtual }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(campos),
     });
-    const data = await res.json();
-    if (res.ok) {
-      setDemandas((atual) => {
-        const atualizado = atual.map((d) => (d.id === id ? data.demanda : d));
-        return data.proximaOcorrencia ? [data.proximaOcorrencia, ...atualizado] : atualizado;
-      });
+    if (!res.ok) {
+      carregar();
+      return;
     }
+    const data = await res.json();
+    setDemandas((atual) => {
+      const atualizado = atual.map((d) => (d.id === id ? data.demanda : d));
+      return data.proximaOcorrencia ? [data.proximaOcorrencia, ...atualizado] : atualizado;
+    });
   }
 
   function handleAdicionarExistente(e) {
@@ -116,8 +111,7 @@ export default function MeuDiaClient({ usuarioAtual }) {
       )}
 
       <div className="mt-6 space-y-2">
-        {carregando && <p className="text-sm text-marine-400">Carregando...</p>}
-        {!carregando && pendentes.length === 0 && (
+        {pendentes.length === 0 && (
           <p className="text-sm text-marine-400 text-center py-8">
             Nada planejado para hoje ainda. Capture algo acima ou traga uma tarefa do backlog.
           </p>
@@ -165,7 +159,7 @@ export default function MeuDiaClient({ usuarioAtual }) {
           demanda={itemAberto}
           equipe={equipe}
           projetos={projetos}
-          podeExcluir={["admin", "gestor"].includes(usuarioAtual.permissao)}
+          usuarioAtual={usuarioAtual}
           onFechar={() => setItemAberto(null)}
           onSalvo={handleSalvo}
           onExcluido={handleExcluido}

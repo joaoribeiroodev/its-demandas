@@ -1,24 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import CapturaRapida from "@/components/CapturaRapida";
 import DemandaModal from "@/components/DemandaModal";
 import PrioridadeBadge from "@/components/PrioridadeBadge";
 import { formatarData } from "@/lib/demandaUtils";
 
-export default function InboxClient({ usuarioAtual }) {
-  const [itens, setItens] = useState([]);
-  const [equipe, setEquipe] = useState([]);
-  const [projetos, setProjetos] = useState([]);
-  const [carregando, setCarregando] = useState(true);
+export default function InboxClient({ usuarioAtual, dadosIniciais }) {
+  const [itens, setItens] = useState(dadosIniciais?.itens || []);
+  const [equipe, setEquipe] = useState(dadosIniciais?.equipe || []);
+  const [projetos, setProjetos] = useState(dadosIniciais?.projetos || []);
   const [itemAberto, setItemAberto] = useState(null);
 
-  useEffect(() => {
-    carregar();
-  }, []);
-
   async function carregar() {
-    setCarregando(true);
     const [resDemandas, resEquipe, resProjetos] = await Promise.all([
       fetch("/api/demandas"),
       fetch("/api/equipe"),
@@ -28,7 +22,6 @@ export default function InboxClient({ usuarioAtual }) {
     setItens((dataDemandas.demandas || []).filter((d) => d.status === "inbox"));
     setEquipe((await resEquipe.json()).equipe || []);
     setProjetos((await resProjetos.json()).projetos || []);
-    setCarregando(false);
   }
 
   async function handleCriar(payload) {
@@ -71,8 +64,7 @@ export default function InboxClient({ usuarioAtual }) {
       <CapturaRapida onCriar={handleCriar} />
 
       <div className="mt-6 space-y-2">
-        {carregando && <p className="text-sm text-marine-400">Carregando...</p>}
-        {!carregando && itens.length === 0 && (
+        {itens.length === 0 && (
           <p className="text-sm text-marine-400 text-center py-10">
             Inbox vazio. Tudo processado — bom trabalho.
           </p>
@@ -106,7 +98,7 @@ export default function InboxClient({ usuarioAtual }) {
           demanda={itemAberto}
           equipe={equipe}
           projetos={projetos}
-          podeExcluir={["admin", "gestor"].includes(usuarioAtual.permissao)}
+          usuarioAtual={usuarioAtual}
           onFechar={() => setItemAberto(null)}
           onSalvo={handleProcessado}
           onExcluido={handleExcluido}

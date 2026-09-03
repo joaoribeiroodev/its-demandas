@@ -1,28 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import UsuarioModal from "@/components/UsuarioModal";
 import { PERMISSOES } from "@/lib/demandaUtils";
 
 const PERMISSAO_LABEL = Object.fromEntries(PERMISSOES.map((p) => [p.valor, p.label]));
 
-export default function UsuariosClient({ usuarioAtualId }) {
-  const [usuarios, setUsuarios] = useState([]);
-  const [carregando, setCarregando] = useState(true);
+export default function UsuariosClient({ usuarioAtualId, dadosIniciais }) {
+  const [usuarios, setUsuarios] = useState(dadosIniciais?.usuarios || []);
   const [modalAberto, setModalAberto] = useState(false);
   const [usuarioEditando, setUsuarioEditando] = useState(null);
-
-  useEffect(() => {
-    carregar();
-  }, []);
-
-  async function carregar() {
-    setCarregando(true);
-    const res = await fetch("/api/usuarios");
-    const data = await res.json();
-    setUsuarios(data.usuarios || []);
-    setCarregando(false);
-  }
 
   function handleSalvo(usuarioSalvo) {
     setUsuarios((atual) => {
@@ -75,14 +62,7 @@ export default function UsuariosClient({ usuarioAtualId }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-marine-50">
-            {carregando && (
-              <tr>
-                <td colSpan={6} className="text-center text-marine-400 py-8">
-                  Carregando usuários...
-                </td>
-              </tr>
-            )}
-            {!carregando && usuarios.length === 0 && (
+            {usuarios.length === 0 && (
               <tr>
                 <td colSpan={6} className="text-center text-marine-400 py-8">
                   Nenhum usuário cadastrado.
