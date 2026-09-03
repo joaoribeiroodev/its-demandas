@@ -3,12 +3,18 @@
 -- Rode no SQL Editor do Supabase quando quiser recomeçar do zero.
 --
 -- ⚠️ ISSO APAGA TODOS OS DADOS (usuários, demandas, projetos,
--- subtarefas, comentários) PERMANENTEMENTE. Não há como desfazer.
--- Depois de rodar este script, rode o novo `schema.sql` completo
--- para recriar as tabelas do zero, e depois `npm run seed` para
+-- subtarefas, comentários, arquivos anexados) PERMANENTEMENTE. Não há
+-- como desfazer. Depois de rodar este script, rode o novo `schema.sql`
+-- completo para recriar as tabelas do zero, e depois `npm run seed` para
 -- recriar o usuário administrador.
 -- =========================================================
 
+-- Apaga os arquivos guardados no bucket (senão eles ficam órfãos no
+-- Storage mesmo depois de apagar a tabela que os referenciava).
+delete from storage.objects where bucket_id = 'anexos';
+delete from storage.buckets where id = 'anexos';
+
+drop table if exists arquivos cascade;
 drop table if exists demanda_comentarios cascade;
 drop table if exists demanda_subtarefas cascade;
 drop table if exists demandas cascade;

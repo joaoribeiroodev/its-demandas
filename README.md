@@ -23,12 +23,15 @@ Feito para rodar **somente** com deploy na **Vercel** e banco de dados **Supabas
 - **Quadro Kanban**: Backlog → A Fazer → Em Andamento → Em Revisão → Concluído, com arrastar e soltar
 - **Projetos**: agrupamento dinâmico de demandas com progresso % automático
 - **Logbook**: histórico de tudo que foi concluído, agrupado por mês
+- **Arquivos**: aba central com todos os anexos (de demandas e projetos) que você tem acesso, com busca por nome e filtro por origem
 
 **Em cada demanda**
 - Prioridade (baixa/média/alta), prazo (dias/semanas/meses, com data-alvo calculada), duração estimada e nível de energia/concentração necessário (leve, moderada, alta concentração)
 - Tags de contexto livres (`#reuniao`, `#computador`, `#ligacao`...)
-- Setor e responsável (pessoa direcionada) — opcionais, para quando a tarefa envolve outra pessoa do time
+- Setor Responsável (quem executa/é dono da demanda) e Setor Direcionado (quem pediu/precisa dela) — ambos opcionais, texto livre com sugestões
+- Direcionado a (pessoa responsável) — opcional, para quando a tarefa envolve outra pessoa do time
 - Checklist de subtarefas com barra de progresso
+- Anexos: arquivos de até 5 MB, guardados no Supabase Storage, vinculados à demanda (ou diretamente a um projeto, pela aba Projetos)
 - Notas em Markdown (com preview) para minutas, links e contexto
 - Recorrência simples (todo dia / toda semana / a cada 2 semanas / todo mês) — ao concluir, a próxima ocorrência é criada automaticamente
 - Modo Foco com timer Pomodoro embutido
@@ -49,6 +52,7 @@ time blocking sincronizado com Google/Outlook Calendar (requer app OAuth aprovad
 
 **Banco já existente** (você já rodou o `schema.sql` antes, numa versão anterior do sistema):
 1. Rode [`supabase/migration_003_demandas_equipe.sql`](./supabase/migration_003_demandas_equipe.sql) — adiciona só o suporte a demandas de equipe. Não apaga nada.
+2. Rode [`supabase/migration_004_anexos.sql`](./supabase/migration_004_anexos.sql) — adiciona a tabela de anexos e cria o bucket `anexos` no Storage. Não apaga nada.
 
 **Recomeçar do zero** (apaga tudo):
 1. Rode [`supabase/drop_all.sql`](./supabase/drop_all.sql).
@@ -88,8 +92,8 @@ O script `npm run seed` cria (ou atualiza, se já existir) o usuário administra
 |---|---|
 | Nome | SEU NOME |
 | E-mail | seuemail@xxxx.com.br |
-| Login | seu.login |
-| Senha |suasenha |
+| Login | seu.usuario |
+| Senha | suasenha |
 | Setor | TI |
 | Permissão | Administrador |
 
@@ -128,12 +132,14 @@ app/
   dashboard/(root)/           quadro Kanban
   dashboard/projetos/         projetos com progresso
   dashboard/logbook/          histórico de concluídas
+  dashboard/arquivos/         aba central de anexos
   dashboard/usuarios/         gerenciamento de usuários (protegido, só admin)
   api/                        todas as rotas de backend (auth, demandas, subtarefas, projetos, usuarios, equipe)
 components/                   componentes de UI reutilizáveis
 lib/                          Supabase admin client, sessão/JWT, utilitários de domínio (inclui o parser de atalhos da captura rápida)
 supabase/schema.sql                          schema completo e atualizado (rodar num projeto novo)
 supabase/migration_003_demandas_equipe.sql   migração incremental p/ bancos já existentes (demandas de equipe)
+supabase/migration_004_anexos.sql            migração incremental p/ bancos já existentes (anexos + bucket de storage)
 supabase/drop_all.sql                        apaga tudo, para recomeçar do zero
 scripts/seed-admin.mjs        script para criar/atualizar o usuário administrador
 middleware.js                 protege rotas /dashboard e /api por sessão e permissão
@@ -162,6 +168,15 @@ Além das demandas pessoais (de sempre), um gestor ou administrador pode marcar 
 | **Colaborador** | Só as próprias (criadas por ele ou atribuídas a ele) | As do seu setor |
 
 No Quadro e no Logbook, o gestor tem um alternador (**"Setor · [nome do setor]"** / **"Só minhas demandas"**) para filtrar entre ver tudo que tem acesso ou só o que é dele. "Meu Dia" é sempre estritamente pessoal, independente do papel — nunca mistura tarefas de outras pessoas, mesmo que o gestor tenha acesso mais amplo no Quadro.
+
+### Anexos
+
+- Um arquivo pertence a **uma demanda OU um projeto**, nunca aos dois — o vínculo é definido no momento do envio.
+- A visibilidade de um arquivo segue a mesma regra da demanda onde ele está anexado (tabela acima). Arquivos de projeto são visíveis a qualquer usuário autenticado, já que projetos hoje não têm restrição de visibilidade.
+- Qualquer pessoa com acesso à demanda/projeto pode anexar arquivos.
+- Só quem enviou o arquivo, ou gestor/admin, pode removê-lo.
+- Limite de 5 MB por arquivo; alguns tipos de arquivo (executáveis e scripts) são bloqueados por segurança.
+- Os arquivos ficam guardados no **Supabase Storage**, num bucket privado (`anexos`) — o mesmo modelo de segurança do resto do sistema: nada é acessado direto pelo navegador, tudo passa pelo backend.
 
 > **Nota de segurança:** a exclusão de demanda e a troca de responsável/setor de uma demanda de equipe já checam o setor de quem está pedindo (não só a permissão). O que ainda **não** é checado: um `PATCH` mudando outros campos (título, status, prioridade etc.) de uma demanda específica não confere se quem pediu tinha "direito de ver" aquele ID — só confere login. Isso só seria explorável por alguém que já soubesse adivinhar o UUID de uma demanda de outro setor, o que é bem improvável, mas é uma camada a mais que dá pra reforçar se algum dia isso importar.
 

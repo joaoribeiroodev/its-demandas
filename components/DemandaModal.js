@@ -13,6 +13,7 @@ import {
 } from "@/lib/demandaUtils";
 import TagsInput from "./TagsInput";
 import SubtarefasChecklist from "./SubtarefasChecklist";
+import AnexosList from "./AnexosList";
 import NotasMarkdown from "./NotasMarkdown";
 import PomodoroTimer from "./PomodoroTimer";
 import SnoozeMenu from "./SnoozeMenu";
@@ -22,6 +23,7 @@ const VAZIO = {
   titulo: "",
   descricao: "",
   setor: "",
+  setor_direcionado: "",
   prioridade: "media",
   prazo_valor: 3,
   prazo_unidade: "dias",
@@ -69,6 +71,7 @@ export default function DemandaModal({ demanda, equipe, projetos, usuarioAtual, 
       titulo: d.titulo,
       descricao: d.descricao || "",
       setor: d.setor || "",
+      setor_direcionado: d.setor_direcionado || "",
       prioridade: d.prioridade,
       prazo_valor: d.prazo_valor || 3,
       prazo_unidade: d.prazo_unidade || "dias",
@@ -93,6 +96,7 @@ export default function DemandaModal({ demanda, equipe, projetos, usuarioAtual, 
       titulo: form.titulo,
       descricao: form.descricao,
       setor: form.setor || null,
+      setor_direcionado: form.setor_direcionado || null,
       prioridade: form.prioridade,
       prazo_valor: form.prazo_valor || null,
       prazo_unidade: form.prazo_unidade || null,
@@ -240,9 +244,9 @@ export default function DemandaModal({ demanda, equipe, projetos, usuarioAtual, 
             </label>
           )}
 
-          <div className="grid sm:grid-cols-2 gap-4">
+          <div className="grid sm:grid-cols-3 gap-4">
             <div>
-              <label className="label">Setor</label>
+              <label className="label">Setor Responsável</label>
               {camposDeEquipeTravados ? (
                 <input className="input bg-marine-50 text-marine-500" value={form.setor} disabled />
               ) : form.equipe ? (
@@ -270,6 +274,25 @@ export default function DemandaModal({ demanda, equipe, projetos, usuarioAtual, 
                   </datalist>
                 </>
               )}
+            </div>
+
+            <div>
+              <label className="label">Setor Direcionado</label>
+              <input
+                className="input"
+                list="setores-sugeridos-direcionado"
+                value={form.setor_direcionado}
+                onChange={(e) => atualizar("setor_direcionado", e.target.value)}
+                placeholder="Quem pediu/precisa"
+              />
+              <datalist id="setores-sugeridos-direcionado">
+                {Array.from(new Set([...SETORES_SUGERIDOS, ...setoresReais]))
+                  .sort()
+                  .map((s) => (
+                    <option key={s} value={s} />
+                  ))}
+              </datalist>
+              <p className="text-[11px] text-marine-400 mt-1">O setor que solicitou esta demanda.</p>
             </div>
 
             <div>
@@ -425,6 +448,12 @@ export default function DemandaModal({ demanda, equipe, projetos, usuarioAtual, 
           {editando && (
             <div className="border-t border-marine-100 pt-4">
               <SubtarefasChecklist demandaId={demanda.id} subtarefas={subtarefas} onMudou={setSubtarefas} />
+            </div>
+          )}
+
+          {editando && (
+            <div className="border-t border-marine-100 pt-4">
+              <AnexosList demandaId={demanda.id} usuarioAtual={usuarioAtual} />
             </div>
           )}
 

@@ -47,7 +47,12 @@ create table demandas (
   descricao text default '',       -- Markdown (título + notas de contexto)
 
   -- Organização (opcionais: um item recém-capturado no Inbox pode não ter nada disso ainda)
+  -- "setor" é o Setor Responsável (quem executa/é dono da demanda — nome de
+  -- coluna mantido por compatibilidade, embora a interface o chame de
+  -- "Setor Responsável"). "setor_direcionado" é o setor que pediu/precisa
+  -- da demanda (o solicitante) — só informativo, não afeta visibilidade.
   setor text,
+  setor_direcionado text,
   projeto_id uuid references projetos(id) on delete set null,
   responsavel_id uuid references usuarios(id) on delete set null,
   tags text[] not null default '{}',
@@ -132,6 +137,40 @@ create table demanda_comentarios (
 create index idx_comentarios_demanda on demanda_comentarios (demanda_id);
 
 -- ---------------------------------------------------------
+-- ANEXOS (arquivos vinculados a uma demanda ou a um projeto)
+-- ---------------------------------------------------------
+
+-- Bucket privado no Supabase Storage. Todo acesso passa pelo backend
+-- (rotas /api) usando a service_role key — nunca é acessado direto pelo
+-- navegador, mesma lógica de segurança do restante do sistema.
+insert into storage.buckets (id, name, public)
+values ('anexos', 'anexos', false)
+on conflict (id) do nothing;
+
+create table arquivos (
+  id uuid primary key default gen_random_uuid(),
+  nome_original text not null,
+  caminho_storage text not null unique,
+  tipo_mime text,
+  tamanho_bytes bigint,
+
+  -- Um arquivo pertence a UMA demanda OU a UM projeto, nunca os dois.
+  demanda_id uuid references demandas(id) on delete cascade,
+  projeto_id uuid references projetos(id) on delete cascade,
+
+  enviado_por uuid references usuarios(id) on delete set null,
+  created_at timestamptz not null default now(),
+
+  constraint arquivos_vinculo_check check (
+    (demanda_id is not null and projeto_id is null) or
+    (demanda_id is null and projeto_id is not null)
+  )
+);
+
+create index idx_arquivos_demanda on arquivos (demanda_id);
+create index idx_arquivos_projeto on arquivos (projeto_id);
+
+-- ---------------------------------------------------------
 -- updated_at automatico
 -- ---------------------------------------------------------
 create or replace function set_updated_at()
@@ -165,6 +204,7 @@ alter table projetos enable row level security;
 alter table demandas enable row level security;
 alter table demanda_subtarefas enable row level security;
 alter table demanda_comentarios enable row level security;
+alter table arquivos enable row level security;
 
 -- =========================================================
 -- Depois de rodar este arquivo, crie o usuário administrador

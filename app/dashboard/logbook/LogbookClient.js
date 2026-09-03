@@ -2,7 +2,10 @@
 
 import { useMemo, useState } from "react";
 import PrioridadeBadge from "@/components/PrioridadeBadge";
+import EnergiaBadge from "@/components/EnergiaBadge";
 import ModoVisualizacaoToggle from "@/components/ModoVisualizacaoToggle";
+import DemandaModal from "@/components/DemandaModal";
+import { formatarDuracao, diasEntreDatas } from "@/lib/demandaUtils";
 
 function chaveMes(dataISO) {
   const data = new Date(dataISO);
@@ -17,8 +20,11 @@ function labelMes(chave) {
 }
 
 export default function LogbookClient({ usuarioAtual, dadosIniciais }) {
-  const todasConcluidas = dadosIniciais?.concluidas || [];
+  const [todasConcluidas, setTodasConcluidas] = useState(dadosIniciais?.concluidas || []);
+  const equipe = dadosIniciais?.equipe || [];
+  const projetos = dadosIniciais?.projetos || [];
   const [modoVisualizacao, setModoVisualizacao] = useState("equipe");
+  const [itemAberto, setItemAberto] = useState(null);
   const ehGestor = usuarioAtual?.permissao === "gestor";
 
   const demandas = useMemo(() => {
@@ -44,12 +50,29 @@ export default function LogbookClient({ usuarioAtual, dadosIniciais }) {
     return demandas.filter((d) => new Date(d.updated_at).getTime() >= limite).length;
   }, [demandas]);
 
+  function handleSalvo(demandaSalva) {
+    setTodasConcluidas((atual) => {
+      // Se deixou de estar concluída (reaberta), sai da lista do Logbook.
+      if (demandaSalva.status !== "concluido") {
+        return atual.filter((d) => d.id !== demandaSalva.id);
+      }
+      const existe = atual.some((d) => d.id === demandaSalva.id);
+      return existe ? atual.map((d) => (d.id === demandaSalva.id ? demandaSalva : d)) : [demandaSalva, ...atual];
+    });
+    setItemAberto(null);
+  }
+
+  function handleExcluido(id) {
+    setTodasConcluidas((atual) => atual.filter((d) => d.id !== id));
+    setItemAberto(null);
+  }
+
   return (
     <div className="px-4 sm:px-6 py-6 max-w-2xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
         <div>
           <h1 className="font-display text-2xl font-bold text-marine-900">Logbook</h1>
-          <p className="text-sm text-marine-500 mt-1">Histórico do que já foi concluído.</p>
+          <p className="text-sm text-marine-500 mt-1">Histórico do que já foi concluído. Clique num item para ver todos os detalhes.</p>
         </div>
         {ehGestor && (
           <ModoVisualizacaoToggle
@@ -74,23 +97,82 @@ export default function LogbookClient({ usuarioAtual, dadosIniciais }) {
               {labelMes(chave)} · {itens.length}
             </h2>
             <div className="space-y-1.5">
-              {itens.map((d) => (
-                <div key={d.id} className="card px-3.5 py-2.5 flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-sm text-marine-800 truncate">{d.titulo}</p>
-                    <p className="text-[11px] text-marine-400">
-                      {d.setor || "Sem setor"}
-                      {d.projeto ? ` · ${d.projeto.nome}` : ""} ·{" "}
-                      {new Date(d.updated_at).toLocaleDateString("pt-BR")}
-                    </p>
-                  </div>
-                  <PrioridadeBadge prioridade={d.prioridade} className="shrink-0" />
-                </div>
-              ))}
+              {itens.map((d) => {
+                const totalSubtarefas = d.subtarefas?.length || 0;
+                const subtarefasConcluidas = d.subtarefas?.filter((s) => s.concluida).length || 0;
+                const diasParaConcluir = diasEntreDatas(d.created_at, d.updated_at);
+
+                return (
+                  <button
+                    key={d.id}
+                    onClick={() => setItemAberto(d)}
+                    className="w-full text-left card px-3.5 py-3 hover:border-tide-300 transition-colors"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="text-sm font-medium text-marine-800 truncate">
+                        {d.recorrente && <span title="Recorrente">🔁 </span>}
+                        {d.equipe && <span title="Demanda de equipe">👥 </span>}
+                        {d.titulo}
+                      </p>
+                      <PrioridadeBadge prioridade={d.prioridade} className="shrink-0" />
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                      {d.setor && (
+                        <span className="inline-flex items-center rounded-md bg-marine-50 text-marine-600 text-[11px] font-medium px-2 py-0.5">
+                          {d.setor}
+                        </span>
+                      )}
+                      {d.projeto && (
+                        <span
+                          className="inline-flex items-center rounded-md text-[11px] font-medium px-2 py-0.5"
+                          style={{ backgroundColor: `${d.projeto.cor}1a`, color: d.projeto.cor }}
+                        >
+                          {d.projeto.nome}
+                        </span>
+                      )}
+                      <EnergiaBadge energia={d.energia} />
+                      {d.tags?.map((tag) => (
+                        <span key={tag} className="text-[11px] text-marine-400">
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-[11px] text-marine-400">
+                      <span>{d.responsavel?.nome || d.criador?.nome || "Sem responsável"}</span>
+                      {d.duracao_estimada_min && <span>~{formatarDuracao(d.duracao_estimada_min)}</span>}
+                      {diasParaConcluir !== null && (
+                        <span>
+                          Levou {diasParaConcluir === 0 ? "menos de 1 dia" : `${diasParaConcluir} dia(s)`}
+                        </span>
+                      )}
+                      {totalSubtarefas > 0 && (
+                        <span>
+                          {subtarefasConcluidas}/{totalSubtarefas} subtarefas
+                        </span>
+                      )}
+                      <span className="ml-auto">Concluída em {new Date(d.updated_at).toLocaleDateString("pt-BR")}</span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
         ))}
       </div>
+
+      {itemAberto && (
+        <DemandaModal
+          demanda={itemAberto}
+          equipe={equipe}
+          projetos={projetos}
+          usuarioAtual={usuarioAtual}
+          onFechar={() => setItemAberto(null)}
+          onSalvo={handleSalvo}
+          onExcluido={handleExcluido}
+        />
+      )}
     </div>
   );
 }

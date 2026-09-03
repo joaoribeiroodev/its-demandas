@@ -6,6 +6,7 @@ const CAMPOS_PERMITIDOS = [
   "titulo",
   "descricao",
   "setor",
+  "setor_direcionado",
   "prioridade",
   "prazo_valor",
   "prazo_unidade",

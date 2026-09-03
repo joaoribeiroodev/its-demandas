@@ -45,6 +45,13 @@ const ICONS = {
       <path d="M15.5 14.3c2.9.3 5 2.6 5 5.7" />
     </svg>
   ),
+  arquivos: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M14 3.5H7A1.5 1.5 0 0 0 5.5 5v14A1.5 1.5 0 0 0 7 20.5h10a1.5 1.5 0 0 0 1.5-1.5V8.5L14 3.5Z" />
+      <path d="M13.5 3.5V8a1 1 0 0 0 1 1h4" />
+      <path d="M9 13h6M9 16.5h6" />
+    </svg>
+  ),
 };
 
 export function getNavLinks(usuario) {
@@ -56,6 +63,7 @@ export function getNavLinks(usuario) {
     { href: "/dashboard", label: "Quadro", icon: "quadro" },
     { href: "/dashboard/projetos", label: "Projetos", icon: "projetos" },
     { href: "/dashboard/logbook", label: "Logbook", icon: "logbook" },
+    { href: "/dashboard/arquivos", label: "Arquivos", icon: "arquivos" },
     ...(isAdmin ? [{ href: "/dashboard/usuarios", label: "Usuários", icon: "usuarios" }] : []),
   ];
 }

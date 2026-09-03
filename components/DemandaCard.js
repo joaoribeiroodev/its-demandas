@@ -44,7 +44,7 @@ export default function DemandaCard({ demanda, index, onClick }) {
             <PrioridadeBadge prioridade={demanda.prioridade} className="shrink-0" />
           </div>
 
-          {(demanda.setor || demanda.projeto || demanda.energia) && (
+          {(demanda.setor || demanda.projeto || demanda.energia || demanda.setor_direcionado) && (
             <div className="flex flex-wrap gap-1">
               {demanda.setor && (
                 <span
@@ -62,6 +62,14 @@ export default function DemandaCard({ demanda, index, onClick }) {
                   style={{ backgroundColor: `${demanda.projeto.cor}1a`, color: demanda.projeto.cor }}
                 >
                   {demanda.projeto.nome}
+                </span>
+              )}
+              {demanda.setor_direcionado && (
+                <span
+                  className="inline-flex items-center rounded-md bg-amber-50 text-amber-700 text-[11px] font-medium px-2 py-0.5"
+                  title="Setor que solicitou esta demanda"
+                >
+                  ↳ {demanda.setor_direcionado}
                 </span>
               )}
               <EnergiaBadge energia={demanda.energia} />

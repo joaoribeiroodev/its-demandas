@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import ProjetoModal from "./ProjetoModal";
+import AnexosList from "@/components/AnexosList";
 
-export default function ProjetosClient({ dadosIniciais }) {
+export default function ProjetosClient({ usuarioAtual, dadosIniciais }) {
   const [projetos, setProjetos] = useState(dadosIniciais?.projetos || []);
   const [modalAberto, setModalAberto] = useState(false);
   const [editando, setEditando] = useState(null);
+  const [anexosDoProjeto, setAnexosDoProjeto] = useState(null);
 
   async function carregar() {
     const res = await fetch("/api/projetos");
@@ -64,6 +66,12 @@ export default function ProjetosClient({ dadosIniciais }) {
               </div>
               <div className="flex gap-1">
                 <button
+                  onClick={() => setAnexosDoProjeto(p)}
+                  className="text-xs text-marine-400 hover:text-marine-700"
+                >
+                  Anexos
+                </button>
+                <button
                   onClick={() => {
                     setEditando(p);
                     setModalAberto(true);
@@ -97,6 +105,25 @@ export default function ProjetosClient({ dadosIniciais }) {
           }}
           onSalvo={handleSalvo}
         />
+      )}
+
+      {anexosDoProjeto && (
+        <div className="fixed inset-0 z-50 bg-marine-900/40 backdrop-blur-sm flex items-start justify-center p-4 py-6 sm:py-10 overflow-y-auto">
+          <div className="card w-full max-w-md p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-display font-semibold text-marine-900">
+                Anexos · {anexosDoProjeto.nome}
+              </h2>
+              <button
+                onClick={() => setAnexosDoProjeto(null)}
+                className="text-marine-400 hover:text-marine-700 text-xl leading-none"
+              >
+                &times;
+              </button>
+            </div>
+            <AnexosList projetoId={anexosDoProjeto.id} usuarioAtual={usuarioAtual} />
+          </div>
+        </div>
       )}
     </div>
   );
