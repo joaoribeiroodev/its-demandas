@@ -46,7 +46,7 @@ export default function UsuariosClient({ usuarioAtualId }) {
 
   return (
     <div className="px-4 sm:px-6 py-6">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div>
           <h1 className="font-display text-2xl font-bold text-marine-900">Usuários</h1>
           <p className="text-sm text-marine-500 mt-1">Crie e gerencie o acesso da equipe ao sistema.</p>
@@ -56,14 +56,14 @@ export default function UsuariosClient({ usuarioAtualId }) {
             setUsuarioEditando(null);
             setModalAberto(true);
           }}
-          className="btn-primary"
+          className="btn-primary self-start sm:self-auto"
         >
           + Novo usuário
         </button>
       </div>
 
-      <div className="card overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="card overflow-x-auto">
+        <table className="w-full text-sm min-w-[640px]">
           <thead className="bg-marine-50 text-marine-600 text-xs uppercase tracking-wide">
             <tr>
               <th className="text-left font-medium px-4 py-3">Nome</th>

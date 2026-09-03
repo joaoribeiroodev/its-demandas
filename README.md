@@ -78,10 +78,10 @@ O script `npm run seed` cria (ou atualiza, se já existir) o usuário administra
 
 | Campo | Valor |
 |---|---|
-| Nome | TI Salvador |
-| E-mail | tisalvador@internacionalmaritima.com.br |
-| Login | ti.salvador |
-| Senha | tisalvador@26 |
+| Nome | SEU NOME |
+| E-mail | seuemail@xxx.com.br |
+| Login | seu.usuario |
+| Senha | suasenha |
 | Setor | TI |
 | Permissão | Administrador |
 

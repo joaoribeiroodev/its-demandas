@@ -40,7 +40,7 @@ export default function ProjetosClient() {
 
   return (
     <div className="px-4 sm:px-6 py-6">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div>
           <h1 className="font-display text-2xl font-bold text-marine-900">Projetos</h1>
           <p className="text-sm text-marine-500 mt-1">Agrupe demandas por área ou objetivo e acompanhe o progresso.</p>
@@ -50,7 +50,7 @@ export default function ProjetosClient() {
             setEditando(null);
             setModalAberto(true);
           }}
-          className="btn-primary"
+          className="btn-primary self-start sm:self-auto"
         >
           + Novo projeto
         </button>

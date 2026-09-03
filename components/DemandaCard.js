@@ -16,16 +16,23 @@ export default function DemandaCard({ demanda, index, onClick }) {
   const totalSubtarefas = demanda.subtarefas?.length || 0;
   const subtarefasConcluidas = demanda.subtarefas?.filter((s) => s.concluida).length || 0;
 
+  function handleKeyDown(e) {
+    // Enter ativa o clique (abre o modal). Espaço fica livre para o "lift"
+    // de teclado da própria biblioteca de drag-and-drop.
+    if (e.key === "Enter") onClick(demanda);
+  }
+
   return (
     <Draggable draggableId={demanda.id} index={index}>
       {(provided, snapshot) => (
-        <button
+        <div
           ref={provided.innerRef}
           {...provided.draggableProps}
           {...provided.dragHandleProps}
           onClick={() => onClick(demanda)}
+          onKeyDown={handleKeyDown}
           className={clsx(
-            "w-full text-left card p-3.5 flex flex-col gap-2.5 hover:border-tide-300 transition-colors",
+            "w-full text-left card p-3.5 flex flex-col gap-2.5 cursor-pointer hover:border-tide-300 transition-colors",
             snapshot.isDragging && "shadow-lg ring-2 ring-tide-400"
           )}
         >
@@ -91,7 +98,7 @@ export default function DemandaCard({ demanda, index, onClick }) {
               {prazo.texto}
             </span>
           </div>
-        </button>
+        </div>
       )}
     </Draggable>
   );
