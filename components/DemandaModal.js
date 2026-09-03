@@ -6,8 +6,17 @@ import {
   UNIDADES_PRAZO,
   STATUS_COLUNAS,
   SETORES_SUGERIDOS,
+  NIVEIS_ENERGIA,
   formatarData,
+  hojeISO,
+  descreverRecorrencia,
 } from "@/lib/demandaUtils";
+import TagsInput from "./TagsInput";
+import SubtarefasChecklist from "./SubtarefasChecklist";
+import NotasMarkdown from "./NotasMarkdown";
+import PomodoroTimer from "./PomodoroTimer";
+import SnoozeMenu from "./SnoozeMenu";
+import RecorrenciaEditor from "./RecorrenciaEditor";
 
 const VAZIO = {
   titulo: "",
@@ -18,15 +27,23 @@ const VAZIO = {
   prazo_unidade: "dias",
   responsavel_id: "",
   status: "backlog",
+  tags: [],
+  energia: "",
+  duracao_estimada_min: "",
+  foco_dia_data: "",
+  projeto_id: "",
+  recorrencia_regra: null,
 };
 
-export default function DemandaModal({ demanda, equipe, podeExcluir, onFechar, onSalvo, onExcluido }) {
+export default function DemandaModal({ demanda, equipe, projetos, podeExcluir, onFechar, onSalvo, onExcluido }) {
   const editando = Boolean(demanda);
   const [form, setForm] = useState(editando ? mapDemandaParaForm(demanda) : VAZIO);
   const [erro, setErro] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [comentarios, setComentarios] = useState([]);
   const [novoComentario, setNovoComentario] = useState("");
+  const [subtarefas, setSubtarefas] = useState(demanda?.subtarefas || []);
+  const [mostrarPomodoro, setMostrarPomodoro] = useState(false);
 
   useEffect(() => {
     if (!editando) return;
@@ -40,12 +57,18 @@ export default function DemandaModal({ demanda, equipe, podeExcluir, onFechar, o
     return {
       titulo: d.titulo,
       descricao: d.descricao || "",
-      setor: d.setor,
+      setor: d.setor || "",
       prioridade: d.prioridade,
-      prazo_valor: d.prazo_valor,
-      prazo_unidade: d.prazo_unidade,
+      prazo_valor: d.prazo_valor || 3,
+      prazo_unidade: d.prazo_unidade || "dias",
       responsavel_id: d.responsavel_id || "",
-      status: d.status,
+      status: d.status === "inbox" ? "backlog" : d.status,
+      tags: d.tags || [],
+      energia: d.energia || "",
+      duracao_estimada_min: d.duracao_estimada_min || "",
+      foco_dia_data: d.foco_dia_data || "",
+      projeto_id: d.projeto_id || "",
+      recorrencia_regra: d.recorrente ? d.recorrencia_regra : null,
     };
   }
 
@@ -53,31 +76,63 @@ export default function DemandaModal({ demanda, equipe, podeExcluir, onFechar, o
     setForm((f) => ({ ...f, [campo]: valor }));
   }
 
+  function montarPayload() {
+    return {
+      titulo: form.titulo,
+      descricao: form.descricao,
+      setor: form.setor || null,
+      prioridade: form.prioridade,
+      prazo_valor: form.prazo_valor || null,
+      prazo_unidade: form.prazo_unidade || null,
+      responsavel_id: form.responsavel_id || null,
+      status: form.status,
+      tags: form.tags,
+      energia: form.energia || null,
+      duracao_estimada_min: form.duracao_estimada_min ? Number(form.duracao_estimada_min) : null,
+      foco_dia_data: form.foco_dia_data || null,
+      projeto_id: form.projeto_id || null,
+      recorrente: Boolean(form.recorrencia_regra),
+      recorrencia_regra: form.recorrencia_regra || null,
+    };
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setErro("");
-    if (!form.titulo || !form.setor) {
-      setErro("Preencha título e setor.");
+    if (!form.titulo) {
+      setErro("Escreva um título para a tarefa.");
       return;
     }
     setSalvando(true);
     try {
-      const payload = { ...form, responsavel_id: form.responsavel_id || null };
       const res = await fetch(editando ? `/api/demandas/${demanda.id}` : "/api/demandas", {
         method: editando ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(montarPayload()),
       });
       const data = await res.json();
       if (!res.ok) {
         setErro(data.erro || "Não foi possível salvar.");
         return;
       }
-      onSalvo(data.demanda);
+      onSalvo(data.demanda, data.proximaOcorrencia || null);
     } catch {
       setErro("Falha de conexão. Tente novamente.");
     } finally {
       setSalvando(false);
+    }
+  }
+
+  async function handlePatchRapido(campos) {
+    const res = await fetch(`/api/demandas/${demanda.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(campos),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setForm((f) => ({ ...f, ...campos }));
+      onSalvo(data.demanda, data.proximaOcorrencia || null);
     }
   }
 
@@ -102,6 +157,8 @@ export default function DemandaModal({ demanda, equipe, podeExcluir, onFechar, o
     }
   }
 
+  const noMeuDia = form.foco_dia_data === hojeISO();
+
   return (
     <div className="fixed inset-0 z-50 bg-marine-900/40 backdrop-blur-sm flex items-start sm:items-center justify-center p-4 overflow-y-auto">
       <div className="card w-full max-w-2xl my-6">
@@ -109,9 +166,14 @@ export default function DemandaModal({ demanda, equipe, podeExcluir, onFechar, o
           <h2 className="font-display font-semibold text-marine-900">
             {editando ? "Editar demanda" : "Nova demanda"}
           </h2>
-          <button onClick={onFechar} className="text-marine-400 hover:text-marine-700 text-xl leading-none">
-            &times;
-          </button>
+          <div className="flex items-center gap-3">
+            {editando && (
+              <SnoozeMenu onAdiar={(dataAlvo) => handlePatchRapido({ foco_dia_data: dataAlvo })} />
+            )}
+            <button onClick={onFechar} className="text-marine-400 hover:text-marine-700 text-xl leading-none">
+              &times;
+            </button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
@@ -126,14 +188,11 @@ export default function DemandaModal({ demanda, equipe, podeExcluir, onFechar, o
             />
           </div>
 
+          <NotasMarkdown value={form.descricao} onChange={(v) => atualizar("descricao", v)} />
+
           <div>
-            <label className="label">Descrição</label>
-            <textarea
-              className="input min-h-[90px] resize-y"
-              value={form.descricao}
-              onChange={(e) => atualizar("descricao", e.target.value)}
-              placeholder="Detalhe o que precisa ser feito..."
-            />
+            <label className="label">Tags de contexto</label>
+            <TagsInput tags={form.tags} onChange={(t) => atualizar("tags", t)} />
           </div>
 
           <div className="grid sm:grid-cols-2 gap-4">
@@ -144,8 +203,7 @@ export default function DemandaModal({ demanda, equipe, podeExcluir, onFechar, o
                 list="setores-sugeridos"
                 value={form.setor}
                 onChange={(e) => atualizar("setor", e.target.value)}
-                placeholder="Ex.: TI"
-                required
+                placeholder="Opcional"
               />
               <datalist id="setores-sugeridos">
                 {SETORES_SUGERIDOS.map((s) => (
@@ -188,6 +246,32 @@ export default function DemandaModal({ demanda, equipe, podeExcluir, onFechar, o
             </div>
 
             <div>
+              <label className="label">Energia necessária</label>
+              <select className="input" value={form.energia} onChange={(e) => atualizar("energia", e.target.value)}>
+                <option value="">Não definida</option>
+                {NIVEIS_ENERGIA.map((n) => (
+                  <option key={n.valor} value={n.valor}>
+                    {n.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="label">Duração estimada (min)</label>
+              <input
+                type="number"
+                min={1}
+                className="input"
+                placeholder="Ex.: 30"
+                value={form.duracao_estimada_min}
+                onChange={(e) => atualizar("duracao_estimada_min", e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="grid sm:grid-cols-3 gap-4">
+            <div>
               <label className="label">Prazo</label>
               <input
                 type="number"
@@ -212,6 +296,42 @@ export default function DemandaModal({ demanda, equipe, podeExcluir, onFechar, o
                 ))}
               </select>
             </div>
+
+            <div>
+              <label className="label">Projeto</label>
+              <select className="input" value={form.projeto_id} onChange={(e) => atualizar("projeto_id", e.target.value)}>
+                <option value="">Sem projeto</option>
+                {projetos.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.nome}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <RecorrenciaEditor
+                regra={form.recorrencia_regra}
+                onChange={(r) => atualizar("recorrencia_regra", r)}
+              />
+              {form.recorrencia_regra && (
+                <p className="text-[11px] text-tide-700 mt-1.5">
+                  🔁 {descreverRecorrencia(form.recorrencia_regra)}
+                </p>
+              )}
+            </div>
+
+            <label className="flex items-center gap-2 text-sm text-marine-700 pb-2">
+              <input
+                type="checkbox"
+                checked={noMeuDia}
+                onChange={(e) => atualizar("foco_dia_data", e.target.checked ? hojeISO() : "")}
+                className="w-4 h-4 rounded border-marine-300 text-tide-600 focus:ring-tide-500"
+              />
+              Colocar em &quot;Meu Dia&quot; (hoje)
+            </label>
           </div>
 
           {editando && (
@@ -232,6 +352,29 @@ export default function DemandaModal({ demanda, equipe, podeExcluir, onFechar, o
                 <p className="text-xs text-marine-400 mt-1">
                   Prazo alvo atual: {formatarData(demanda.prazo_data)}
                 </p>
+              )}
+            </div>
+          )}
+
+          {editando && (
+            <div className="border-t border-marine-100 pt-4">
+              <SubtarefasChecklist demandaId={demanda.id} subtarefas={subtarefas} onMudou={setSubtarefas} />
+            </div>
+          )}
+
+          {editando && (
+            <div className="border-t border-marine-100 pt-4">
+              <button
+                type="button"
+                onClick={() => setMostrarPomodoro((m) => !m)}
+                className="text-xs font-medium text-tide-700 hover:text-tide-800"
+              >
+                {mostrarPomodoro ? "Ocultar modo foco" : "▸ Abrir modo foco (Pomodoro)"}
+              </button>
+              {mostrarPomodoro && (
+                <div className="mt-3">
+                  <PomodoroTimer />
+                </div>
               )}
             </div>
           )}

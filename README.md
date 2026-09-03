@@ -1,6 +1,9 @@
-# Gerenciador de Demandas — Internacional Marítima
+# Gerenciador de Demandas Pessoais — Internacional Marítima
 
-Sistema web de gerenciamento de demandas por setor, baseado em Scrum/Kanban.
+Ferramenta de organização pessoal e produtividade individual no ambiente de
+trabalho — captura rápida, foco diário, quadro Kanban, projetos e histórico.
+**Não é** um sistema de chamados/tickets entre pessoas: cada usuário organiza
+a própria rotina, ainda que dentro de um workspace compartilhado da empresa.
 Feito para rodar **somente** com deploy na **Vercel** e banco de dados **Supabase**.
 
 ## Stack
@@ -9,21 +12,41 @@ Feito para rodar **somente** com deploy na **Vercel** e banco de dados **Supabas
 - **Supabase** (Postgres) — banco de dados, acessado só pelo backend via *service role key*
 - **Tailwind CSS** — estilização (paleta verde/branco/azul)
 - **@hello-pangea/dnd** — arrastar e soltar no quadro Kanban
+- **marked** — renderização de notas em Markdown (sem serviço externo, 100% local)
 - Autenticação própria (login + senha com hash `bcrypt`, sessão via cookie `httpOnly` assinado com JWT) — não usa o Supabase Auth, então o login pode ser feito por **login de usuário** (`ti.salvador`) ou **e-mail**.
 
 ## Funcionalidades
 
-- Quadro Kanban com colunas: Backlog, A Fazer, Em Andamento, Em Revisão, Concluído
-- Demandas com: título, descrição, setor, prioridade (baixa/média/alta), prazo (dias/semanas/meses, com data-alvo calculada automaticamente) e responsável (pessoa direcionada)
-- Arrastar o card entre colunas atualiza o status automaticamente
-- Filtros por setor, prioridade, responsável e busca por título
-- Comentários/histórico de acompanhamento em cada demanda
+**Captura e organização**
+- **Inbox**: captura rápida de qualquer coisa, sem precisar categorizar na hora. Suporta atalhos de texto: `#tag` (contexto), `!alta`/`!media`/`!baixa` (prioridade), `/hoje`/`/amanha`/`/semana` (data), `~15min`/`~1h` (duração estimada)
+- **Meu Dia**: visão isolada com só as tarefas planejadas para hoje, separado do resto do backlog
+- **Quadro Kanban**: Backlog → A Fazer → Em Andamento → Em Revisão → Concluído, com arrastar e soltar
+- **Projetos**: agrupamento dinâmico de demandas com progresso % automático
+- **Logbook**: histórico de tudo que foi concluído, agrupado por mês
+
+**Em cada demanda**
+- Prioridade (baixa/média/alta), prazo (dias/semanas/meses, com data-alvo calculada), duração estimada e nível de energia/concentração necessário (leve, moderada, alta concentração)
+- Tags de contexto livres (`#reuniao`, `#computador`, `#ligacao`...)
+- Setor e responsável (pessoa direcionada) — opcionais, para quando a tarefa envolve outra pessoa do time
+- Checklist de subtarefas com barra de progresso
+- Notas em Markdown (com preview) para minutas, links e contexto
+- Recorrência simples (todo dia / toda semana / a cada 2 semanas / todo mês) — ao concluir, a próxima ocorrência é criada automaticamente
+- Modo Foco com timer Pomodoro embutido
+- Snooze rápido ("Amanhã", "Próxima semana", "Tirar do Meu Dia")
+- Comentários/histórico de acompanhamento
+
+**Administração**
 - Aba **Usuários** (visível apenas para Administradores): cria, edita, desativa e reativa usuários, definindo nome, e-mail, login, senha, setor e permissão (Administrador / Gestor / Colaborador)
+
+**Não incluído de propósito** (avaliar depois, exigem infraestrutura/custo externo):
+time blocking sincronizado com Google/Outlook Calendar (requer app OAuth aprovado por terceiros) e conversão automática de e-mail/Slack/Teams em tarefa (requer serviço pago de e-mail inbound e/ou app Slack/Teams registrado).
 
 ## 1. Configurar o Supabase
 
 1. Crie um projeto em [supabase.com](https://supabase.com).
-2. Vá em **SQL Editor** e rode todo o conteúdo do arquivo [`supabase/schema.sql`](./supabase/schema.sql). Isso cria as tabelas `usuarios`, `demandas` e `demanda_comentarios`.
+2. Vá em **SQL Editor** e rode, **nesta ordem**:
+   1. Todo o conteúdo de [`supabase/schema.sql`](./supabase/schema.sql) — cria as tabelas `usuarios`, `demandas` e `demanda_comentarios`.
+   2. Todo o conteúdo de [`supabase/migration_002_produtividade_pessoal.sql`](./supabase/migration_002_produtividade_pessoal.sql) — adiciona Inbox, tags, energia, duração estimada, Meu Dia, projetos, subtarefas e recorrência. (Se você já tinha rodado só o `schema.sql` antes, rode a migração agora; ela não apaga nada do que já existe.)
 3. Vá em **Project Settings → API** e copie:
    - `Project URL` → variável `NEXT_PUBLIC_SUPABASE_URL`
    - `service_role` key (em "Project API keys") → variável `SUPABASE_SERVICE_ROLE_KEY`
@@ -90,15 +113,21 @@ Depois disso, o sistema estará disponível na URL da Vercel, pronto para login 
 
 ```
 app/
-  login/            página de login
-  dashboard/         quadro Kanban (protegido)
-  dashboard/usuarios/ gerenciamento de usuários (protegido, só admin)
-  api/                todas as rotas de backend (auth, demandas, usuarios, equipe)
-components/           componentes de UI reutilizáveis
-lib/                  Supabase admin client, sessão/JWT, utilitários de domínio
-supabase/schema.sql   schema completo do banco
-scripts/seed-admin.mjs script para criar/atualizar o usuário administrador
-middleware.js          protege rotas /dashboard e /api por sessão e permissão
+  login/                      página de login
+  dashboard/                  layout com sidebar (Inbox, Meu Dia, Quadro, Projetos, Logbook, Usuários)
+  dashboard/inbox/            captura rápida e triagem
+  dashboard/meu-dia/          foco diário
+  dashboard/(root)/           quadro Kanban
+  dashboard/projetos/         projetos com progresso
+  dashboard/logbook/          histórico de concluídas
+  dashboard/usuarios/         gerenciamento de usuários (protegido, só admin)
+  api/                        todas as rotas de backend (auth, demandas, subtarefas, projetos, usuarios, equipe)
+components/                   componentes de UI reutilizáveis
+lib/                          Supabase admin client, sessão/JWT, utilitários de domínio (inclui o parser de atalhos da captura rápida)
+supabase/schema.sql                          schema original (usuarios, demandas, comentarios)
+supabase/migration_002_produtividade_pessoal.sql  migração com Inbox/tags/energia/projetos/subtarefas/recorrência
+scripts/seed-admin.mjs        script para criar/atualizar o usuário administrador
+middleware.js                 protege rotas /dashboard e /api por sessão e permissão
 ```
 
 ## Permissões
@@ -112,3 +141,9 @@ middleware.js          protege rotas /dashboard e /api por sessão e permissão
 - Senhas nunca são armazenadas em texto puro — apenas o hash `bcrypt`.
 - A tabela do Supabase tem Row Level Security (RLS) habilitada e nenhuma política pública é criada de propósito: o banco só é acessado pelo backend Next.js usando a `service_role` key, nunca diretamente pelo navegador.
 - A sessão é um JWT assinado (`AUTH_SECRET`) guardado em cookie `httpOnly`, `SameSite=Lax` e `Secure` em produção.
+
+## O que ficou fora de escopo (de propósito)
+
+- **Time blocking com Google Calendar/Outlook**: precisa de um app OAuth registrado e aprovado por Google/Microsoft, tela de consentimento, refresh tokens armazenados com segurança e manutenção contínua da integração. Quando quiserem investir nisso, o ponto de entrada natural é uma nova rota `/api/integracoes/calendario` com OAuth2 + biblioteca oficial de cada provedor.
+- **E-mail/Slack/Teams → tarefa automática**: exige um serviço pago de e-mail inbound (ex.: SendGrid Inbound Parse, Postmark) ou um app Slack/Teams registrado com bot token. O ponto de entrada seria um webhook `/api/webhooks/entrada` que valida a origem e cria a demanda com `status: "inbox"`.
+- **Recorrência avançada** (ex.: "toda última sexta-feira do mês"): a recorrência implementada cobre intervalos regulares (todo dia / toda semana / a cada N semanas / todo mês), que resolve a maioria dos casos. Regras mais elaboradas exigiriam um motor de regras tipo RRULE (iCalendar), que é bem mais código para um ganho menor.

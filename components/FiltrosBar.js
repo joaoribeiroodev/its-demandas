@@ -1,14 +1,14 @@
 "use client";
 
-import { PRIORIDADES } from "@/lib/demandaUtils";
+import { PRIORIDADES, NIVEIS_ENERGIA } from "@/lib/demandaUtils";
 
-export default function FiltrosBar({ filtros, setFiltros, setores, equipe, onNovaDemanda }) {
+export default function FiltrosBar({ filtros, setFiltros, setores, equipe, projetos, onNovaDemanda }) {
   function atualizar(campo, valor) {
     setFiltros((f) => ({ ...f, [campo]: valor }));
   }
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center gap-3 px-4 sm:px-6 py-4">
+    <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 px-4 sm:px-6 py-4">
       <input
         className="input sm:max-w-xs"
         placeholder="Buscar por título..."
@@ -26,7 +26,7 @@ export default function FiltrosBar({ filtros, setFiltros, setores, equipe, onNov
       </select>
 
       <select
-        className="input sm:w-40"
+        className="input sm:w-36"
         value={filtros.prioridade}
         onChange={(e) => atualizar("prioridade", e.target.value)}
       >
@@ -38,8 +38,28 @@ export default function FiltrosBar({ filtros, setFiltros, setores, equipe, onNov
         ))}
       </select>
 
+      <select className="input sm:w-40" value={filtros.energia} onChange={(e) => atualizar("energia", e.target.value)}>
+        <option value="">Toda energia</option>
+        {NIVEIS_ENERGIA.map((n) => (
+          <option key={n.valor} value={n.valor}>
+            {n.label}
+          </option>
+        ))}
+      </select>
+
       <select
-        className="input sm:w-48"
+        className="input sm:w-40"
+        value={filtros.duracaoMax}
+        onChange={(e) => atualizar("duracaoMax", e.target.value)}
+      >
+        <option value="">Qualquer duração</option>
+        <option value="15">Até 15 min</option>
+        <option value="30">Até 30 min</option>
+        <option value="60">Até 1 h</option>
+      </select>
+
+      <select
+        className="input sm:w-44"
         value={filtros.responsavel}
         onChange={(e) => atualizar("responsavel", e.target.value)}
       >
@@ -50,6 +70,21 @@ export default function FiltrosBar({ filtros, setFiltros, setores, equipe, onNov
           </option>
         ))}
       </select>
+
+      {projetos.length > 0 && (
+        <select
+          className="input sm:w-40"
+          value={filtros.projeto}
+          onChange={(e) => atualizar("projeto", e.target.value)}
+        >
+          <option value="">Todos os projetos</option>
+          {projetos.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.nome}
+            </option>
+          ))}
+        </select>
+      )}
 
       <button onClick={onNovaDemanda} className="btn-primary sm:ml-auto">
         + Nova demanda

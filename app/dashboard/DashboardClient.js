@@ -9,10 +9,19 @@ import { SETORES_SUGERIDOS } from "@/lib/demandaUtils";
 export default function DashboardClient({ usuarioAtual }) {
   const [demandas, setDemandas] = useState([]);
   const [equipe, setEquipe] = useState([]);
+  const [projetos, setProjetos] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [demandaAberta, setDemandaAberta] = useState(null);
   const [criandoNova, setCriandoNova] = useState(false);
-  const [filtros, setFiltros] = useState({ busca: "", setor: "", prioridade: "", responsavel: "" });
+  const [filtros, setFiltros] = useState({
+    busca: "",
+    setor: "",
+    prioridade: "",
+    responsavel: "",
+    energia: "",
+    duracaoMax: "",
+    projeto: "",
+  });
 
   useEffect(() => {
     carregarDados();
@@ -20,19 +29,22 @@ export default function DashboardClient({ usuarioAtual }) {
 
   async function carregarDados() {
     setCarregando(true);
-    const [resDemandas, resEquipe] = await Promise.all([
+    const [resDemandas, resEquipe, resProjetos] = await Promise.all([
       fetch("/api/demandas"),
       fetch("/api/equipe"),
+      fetch("/api/projetos"),
     ]);
     const dataDemandas = await resDemandas.json();
     const dataEquipe = await resEquipe.json();
-    setDemandas(dataDemandas.demandas || []);
+    const dataProjetos = await resProjetos.json();
+    setDemandas((dataDemandas.demandas || []).filter((d) => d.status !== "inbox"));
     setEquipe(dataEquipe.equipe || []);
+    setProjetos(dataProjetos.projetos || []);
     setCarregando(false);
   }
 
   const setoresDisponiveis = useMemo(() => {
-    const setores = new Set([...SETORES_SUGERIDOS, ...demandas.map((d) => d.setor)]);
+    const setores = new Set([...SETORES_SUGERIDOS, ...demandas.map((d) => d.setor).filter(Boolean)]);
     return Array.from(setores).sort();
   }, [demandas]);
 
@@ -42,6 +54,9 @@ export default function DashboardClient({ usuarioAtual }) {
       if (filtros.setor && d.setor !== filtros.setor) return false;
       if (filtros.prioridade && d.prioridade !== filtros.prioridade) return false;
       if (filtros.responsavel && d.responsavel_id !== filtros.responsavel) return false;
+      if (filtros.energia && d.energia !== filtros.energia) return false;
+      if (filtros.duracaoMax && (!d.duracao_estimada_min || d.duracao_estimada_min > Number(filtros.duracaoMax))) return false;
+      if (filtros.projeto && d.projeto_id !== filtros.projeto) return false;
       return true;
     });
   }, [demandas, filtros]);
@@ -55,16 +70,25 @@ export default function DashboardClient({ usuarioAtual }) {
     });
     if (res.ok) {
       const data = await res.json();
-      setDemandas((atual) => atual.map((d) => (d.id === id ? data.demanda : d)));
+      setDemandas((atual) => {
+        const atualizado = atual.map((d) => (d.id === id ? data.demanda : d));
+        return data.proximaOcorrencia ? [data.proximaOcorrencia, ...atualizado] : atualizado;
+      });
     } else {
       carregarDados();
     }
   }
 
-  function handleSalvo(demandaSalva) {
+  function handleSalvo(demandaSalva, proximaOcorrencia) {
     setDemandas((atual) => {
       const existe = atual.some((d) => d.id === demandaSalva.id);
-      return existe ? atual.map((d) => (d.id === demandaSalva.id ? demandaSalva : d)) : [demandaSalva, ...atual];
+      let atualizado = existe
+        ? atual.map((d) => (d.id === demandaSalva.id ? demandaSalva : d))
+        : demandaSalva.status !== "inbox"
+        ? [demandaSalva, ...atual]
+        : atual;
+      if (proximaOcorrencia) atualizado = [proximaOcorrencia, ...atualizado];
+      return atualizado;
     });
     setDemandaAberta(null);
     setCriandoNova(false);
@@ -91,6 +115,7 @@ export default function DashboardClient({ usuarioAtual }) {
         setFiltros={setFiltros}
         setores={setoresDisponiveis}
         equipe={equipe}
+        projetos={projetos}
         onNovaDemanda={() => setCriandoNova(true)}
       />
 
@@ -112,6 +137,7 @@ export default function DashboardClient({ usuarioAtual }) {
         <DemandaModal
           demanda={demandaAberta}
           equipe={equipe}
+          projetos={projetos}
           podeExcluir={podeExcluir}
           onFechar={() => {
             setDemandaAberta(null);
