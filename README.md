@@ -21,7 +21,7 @@ Feito para rodar **somente** com deploy na **Vercel** e banco de dados **Supabas
 - **Inbox**: captura rápida de qualquer coisa, sem precisar categorizar na hora. Suporta atalhos de texto: `#tag` (contexto), `!alta`/`!media`/`!baixa` (prioridade), `/hoje`/`/amanha`/`/semana` (data), `~15min`/`~1h` (duração estimada)
 - **Meu Dia**: visão isolada com só as tarefas planejadas para hoje, separado do resto do backlog
 - **Quadro Kanban**: Backlog → A Fazer → Em Andamento → Em Revisão → Concluído, com arrastar e soltar. Chegar em "Concluído" não é o fim — um botão **"Concluir Demanda"** (no card ou no modal) encerra de vez o item, tirando-o do Kanban e mandando pro Logbook. Demandas recorrentes se encerram sozinhas quando a próxima ocorrência é criada.
-- **Projetos**: agrupamento dinâmico de demandas com progresso % automático
+- **Projetos**: agrupamento dinâmico de demandas com progresso % automático (atualizado ao vivo). Cada projeto tem um botão **"Demandas"** para ver tudo que está vinculado a ele, vincular uma demanda existente ou desvincular — além de vincular pelo próprio lado da demanda, no campo "Projeto" do modal. Pode ser arquivado (some da lista, mas preserva tudo) ou **excluído definitivamente** (irreversível, restrito a gestor/admin — as demandas vinculadas não são apagadas, só perdem a referência ao projeto; anexos do projeto são removidos)
 - **Logbook**: histórico de tudo que foi concluído, agrupado por mês, com todos os detalhes de cada item (clique para abrir) — inclusive a opção de **reabrir** uma demanda encerrada, trazendo ela de volta pro Kanban
 - **Arquivos**: aba central com todos os anexos (de demandas e projetos) que você tem acesso, com busca por nome e filtro por origem
 
@@ -94,7 +94,7 @@ O script `npm run seed` cria (ou atualiza, se já existir) o usuário administra
 |---|---|
 | Nome | SEU NOME |
 | E-mail | seuemail@xxxx.com.br |
-| Login | seu.usuario |
+| Login | seu.login |
 | Senha | suasenha |
 | Setor | TI |
 | Permissão | Administrador |
