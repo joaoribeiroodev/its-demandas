@@ -55,6 +55,7 @@ time blocking sincronizado com Google/Outlook Calendar (requer app OAuth aprovad
 2. Rode [`supabase/migration_004_anexos.sql`](./supabase/migration_004_anexos.sql) — adiciona a tabela de anexos e cria o bucket `anexos` no Storage. Não apaga nada.
 3. Rode [`supabase/migration_005_setor_direcionado.sql`](./supabase/migration_005_setor_direcionado.sql) — adiciona o campo Setor Direcionado. Não apaga nada.
 4. Rode [`supabase/migration_006_encerrar_demanda.sql`](./supabase/migration_006_encerrar_demanda.sql) — adiciona o campo de demanda encerrada (arquivamento). Não apaga nada.
+5. Rode [`supabase/migration_007_seguranca_login.sql`](./supabase/migration_007_seguranca_login.sql) — adiciona bloqueio por tentativas, versionamento de sessão e último login. Não apaga nada.
 
 **Recomeçar do zero** (apaga tudo):
 1. Rode [`supabase/drop_all.sql`](./supabase/drop_all.sql).
@@ -144,6 +145,7 @@ supabase/migration_003_demandas_equipe.sql   migração incremental p/ bancos j�
 supabase/migration_004_anexos.sql            migração incremental p/ bancos já existentes (anexos + bucket de storage)
 supabase/migration_005_setor_direcionado.sql migração incremental p/ bancos já existentes (campo Setor Direcionado)
 supabase/migration_006_encerrar_demanda.sql  migração incremental p/ bancos já existentes (encerrar/reabrir demanda)
+supabase/migration_007_seguranca_login.sql   migração incremental p/ bancos já existentes (bloqueio de login, versão de sessão, último login)
 supabase/drop_all.sql                        apaga tudo, para recomeçar do zero
 scripts/seed-admin.mjs        script para criar/atualizar o usuário administrador
 middleware.js                 protege rotas /dashboard e /api por sessão e permissão
@@ -186,12 +188,21 @@ No Quadro e no Logbook, o gestor tem um alternador (**"Setor · [nome do setor]"
 
 ## Segurança
 
-- Senhas nunca são armazenadas em texto puro — apenas o hash `bcrypt`.
+- Senhas nunca são armazenadas em texto puro — apenas o hash `bcrypt`; a senha mínima exigida é de **8 caracteres**.
 - A tabela do Supabase tem Row Level Security (RLS) habilitada e nenhuma política pública é criada de propósito: o banco só é acessado pelo backend Next.js usando a `service_role` key, nunca diretamente pelo navegador.
-- A sessão é um JWT assinado (`AUTH_SECRET`) guardado em cookie `httpOnly`, `SameSite=Lax` e `Secure` em produção.
+- A sessão é um JWT assinado (`AUTH_SECRET`) guardado em cookie `httpOnly`, `SameSite=Lax` e `Secure` em produção, com duração configurável (`SESSION_DURATION_HORAS`, padrão 8h).
+- **Bloqueio por tentativas de login**: 5 tentativas de senha incorreta seguidas bloqueiam a conta por 15 minutos, contra ataques de força bruta.
+- **Invalidação de sessão em tempo real**: cada sessão carrega uma "versão" gravada no banco. Trocar a senha, desativar um usuário, ou usar o botão **"Encerrar sessões"** (na aba Usuários) incrementa essa versão e derruba imediatamente qualquer sessão já aberta daquele usuário — sem isso, a sessão antiga continuaria válida até expirar sozinha.
+- Mensagens de erro de login são genéricas ("Credenciais inválidas") tanto para login inexistente quanto senha errada quanto conta desativada, para não revelar quais contas existem.
+- **Último login** de cada usuário fica visível na aba Usuários, para o administrador identificar contas ativas, esquecidas ou com uso fora do padrão.
+- Cabeçalhos HTTP de segurança (`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, `Strict-Transport-Security`) aplicados a toda resposta via `next.config.mjs`.
+
+> **Sobre Content-Security-Policy (CSP):** deliberadamente não incluída. Várias dependências do projeto (recharts, `@hello-pangea/dnd`, o próprio Next.js) dependem de estilos/scripts inline para funcionar — uma CSP mal calibrada quebra essas bibliotecas de forma sutil e difícil de diagnosticar (o drag-and-drop do Kanban, inclusive, já foi uma fonte de bug complicado neste projeto por outro motivo). Adicionar CSP com segurança exige testar de verdade num navegador antes de habilitar em produção, o que não foi possível validar aqui.
 
 ## O que ficou fora de escopo (de propósito)
 
 - **Time blocking com Google Calendar/Outlook**: precisa de um app OAuth registrado e aprovado por Google/Microsoft, tela de consentimento, refresh tokens armazenados com segurança e manutenção contínua da integração. Quando quiserem investir nisso, o ponto de entrada natural é uma nova rota `/api/integracoes/calendario` com OAuth2 + biblioteca oficial de cada provedor.
 - **E-mail/Slack/Teams → tarefa automática**: exige um serviço pago de e-mail inbound (ex.: SendGrid Inbound Parse, Postmark) ou um app Slack/Teams registrado com bot token. O ponto de entrada seria um webhook `/api/webhooks/entrada` que valida a origem e cria a demanda com `status: "inbox"`.
 - **Recorrência avançada** (ex.: "toda última sexta-feira do mês"): a recorrência implementada cobre intervalos regulares (todo dia / toda semana / a cada N semanas / todo mês), que resolve a maioria dos casos. Regras mais elaboradas exigiriam um motor de regras tipo RRULE (iCalendar), que é bem mais código para um ganho menor.
+- **Autenticação de dois fatores (2FA)**: exigiria um serviço de envio de SMS/e-mail ou app autenticador integrado — deixado de fora por depender de infraestrutura externa adicional.
+- **Content-Security-Policy**: ver nota acima.

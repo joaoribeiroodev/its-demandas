@@ -115,7 +115,7 @@ export default function UsuarioModal({ usuario, onFechar, onSalvo }) {
                 className="input"
                 value={form.senha}
                 onChange={(e) => atualizar("senha", e.target.value)}
-                placeholder={editando ? "Deixe em branco para manter" : "Mínimo 6 caracteres"}
+                placeholder={editando ? "Deixe em branco para manter" : "Mínimo 8 caracteres"}
               />
             </div>
             <div>

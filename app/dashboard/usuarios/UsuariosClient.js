@@ -31,6 +31,17 @@ export default function UsuariosClient({ usuarioAtualId, dadosIniciais }) {
     else alert(data.erro || "Não foi possível atualizar o usuário.");
   }
 
+  async function handleEncerrarSessoes(usuario) {
+    if (!confirm(`Encerrar todas as sessões abertas de "${usuario.nome}"? A pessoa precisará fazer login de novo.`)) return;
+    const res = await fetch(`/api/usuarios/${usuario.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ encerrar_sessoes: true }),
+    });
+    const data = await res.json();
+    if (!res.ok) alert(data.erro || "Não foi possível encerrar as sessões.");
+  }
+
   return (
     <div className="px-4 sm:px-6 py-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
@@ -57,6 +68,7 @@ export default function UsuariosClient({ usuarioAtualId, dadosIniciais }) {
               <th className="text-left font-medium px-4 py-3 hidden sm:table-cell">Login / E-mail</th>
               <th className="text-left font-medium px-4 py-3">Setor</th>
               <th className="text-left font-medium px-4 py-3">Permissão</th>
+              <th className="text-left font-medium px-4 py-3 hidden md:table-cell">Último login</th>
               <th className="text-left font-medium px-4 py-3">Status</th>
               <th className="px-4 py-3" />
             </tr>
@@ -64,7 +76,7 @@ export default function UsuariosClient({ usuarioAtualId, dadosIniciais }) {
           <tbody className="divide-y divide-marine-50">
             {usuarios.length === 0 && (
               <tr>
-                <td colSpan={6} className="text-center text-marine-400 py-8">
+                <td colSpan={7} className="text-center text-marine-400 py-8">
                   Nenhum usuário cadastrado.
                 </td>
               </tr>
@@ -77,6 +89,9 @@ export default function UsuariosClient({ usuarioAtualId, dadosIniciais }) {
                 </td>
                 <td className="px-4 py-3 text-marine-600">{u.setor}</td>
                 <td className="px-4 py-3 text-marine-600">{PERMISSAO_LABEL[u.permissao]}</td>
+                <td className="px-4 py-3 text-marine-400 hidden md:table-cell text-xs">
+                  {u.ultimo_login ? new Date(u.ultimo_login).toLocaleString("pt-BR") : "Nunca"}
+                </td>
                 <td className="px-4 py-3">
                   <span
                     className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${
@@ -97,9 +112,14 @@ export default function UsuariosClient({ usuarioAtualId, dadosIniciais }) {
                     Editar
                   </button>
                   {u.id !== usuarioAtualId && (
-                    <button onClick={() => handleAlternarAtivo(u)} className="btn-ghost text-xs">
-                      {u.ativo ? "Desativar" : "Reativar"}
-                    </button>
+                    <>
+                      <button onClick={() => handleAlternarAtivo(u)} className="btn-ghost text-xs">
+                        {u.ativo ? "Desativar" : "Reativar"}
+                      </button>
+                      <button onClick={() => handleEncerrarSessoes(u)} className="btn-ghost text-xs">
+                        Encerrar sessões
+                      </button>
+                    </>
                   )}
                 </td>
               </tr>

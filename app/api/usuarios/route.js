@@ -27,8 +27,8 @@ export async function POST(request) {
   if (!nome || !email || !login || !senha || !setor || !permissao) {
     return Response.json({ erro: "Preencha todos os campos obrigatórios." }, { status: 400 });
   }
-  if (senha.length < 6) {
-    return Response.json({ erro: "A senha deve ter ao menos 6 caracteres." }, { status: 400 });
+  if (senha.length < 8) {
+    return Response.json({ erro: "A senha deve ter ao menos 8 caracteres." }, { status: 400 });
   }
   if (!["admin", "gestor", "colaborador"].includes(permissao)) {
     return Response.json({ erro: "Permissão inválida." }, { status: 400 });

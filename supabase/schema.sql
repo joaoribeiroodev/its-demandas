@@ -19,6 +19,18 @@ create table usuarios (
   permissao text not null default 'colaborador'
     check (permissao in ('admin', 'gestor', 'colaborador')),
   ativo boolean not null default true,
+
+  -- Segurança de login: bloqueio por tentativas incorretas (força bruta).
+  tentativas_login_falhas integer not null default 0,
+  bloqueado_ate timestamptz,
+
+  -- Incrementar este número invalida imediatamente qualquer sessão já
+  -- aberta desse usuário (o token antigo guarda a versão anterior e deixa
+  -- de bater com este valor). Disparado ao trocar senha, desativar, ou
+  -- manualmente pelo botão "Encerrar sessões".
+  sessao_versao integer not null default 1,
+  ultimo_login timestamptz,
+
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
