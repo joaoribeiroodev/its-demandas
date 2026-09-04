@@ -41,11 +41,23 @@ export async function POST(request) {
   if (!senhaValida) {
     const novasTentativas = usuario.tentativas_login_falhas + 1;
     const atualizacoes = { tentativas_login_falhas: novasTentativas };
-    if (novasTentativas >= MAX_TENTATIVAS) {
+    const tentativasRestantes = MAX_TENTATIVAS - novasTentativas;
+
+    if (tentativasRestantes <= 0) {
       atualizacoes.bloqueado_ate = new Date(Date.now() + BLOQUEIO_MINUTOS * 60 * 1000).toISOString();
+      await supabase.from("usuarios").update(atualizacoes).eq("id", usuario.id);
+      return Response.json(
+        { erro: `Credenciais inválidas. Conta bloqueada por ${BLOQUEIO_MINUTOS} minutos após muitas tentativas.` },
+        { status: 429 }
+      );
     }
+
     await supabase.from("usuarios").update(atualizacoes).eq("id", usuario.id);
-    return Response.json({ erro: "Credenciais inválidas." }, { status: 401 });
+    const aviso =
+      tentativasRestantes <= 2
+        ? ` Restam apenas ${tentativasRestantes} tentativa(s) antes do bloqueio temporário.`
+        : ` Restam ${tentativasRestantes} tentativas antes do bloqueio temporário.`;
+    return Response.json({ erro: `Credenciais inválidas.${aviso}`, tentativasRestantes }, { status: 401 });
   }
 
   // Login certo: zera o contador de tentativas e registra o acesso.

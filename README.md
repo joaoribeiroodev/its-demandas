@@ -191,7 +191,7 @@ No Quadro e no Logbook, o gestor tem um alternador (**"Setor · [nome do setor]"
 - Senhas nunca são armazenadas em texto puro — apenas o hash `bcrypt`; a senha mínima exigida é de **8 caracteres**.
 - A tabela do Supabase tem Row Level Security (RLS) habilitada e nenhuma política pública é criada de propósito: o banco só é acessado pelo backend Next.js usando a `service_role` key, nunca diretamente pelo navegador.
 - A sessão é um JWT assinado (`AUTH_SECRET`) guardado em cookie `httpOnly`, `SameSite=Lax` e `Secure` em produção, com duração configurável (`SESSION_DURATION_HORAS`, padrão 8h).
-- **Bloqueio por tentativas de login**: 5 tentativas de senha incorreta seguidas bloqueiam a conta por 15 minutos, contra ataques de força bruta.
+- **Bloqueio por tentativas de login**: 5 tentativas de senha incorreta seguidas bloqueiam a conta por 15 minutos, contra ataques de força bruta. A cada tentativa errada, a tela de login avisa quantas tentativas restam antes do bloqueio (destacado em âmbar nas últimas duas), para a pessoa não ser pega de surpresa.
 - **Invalidação de sessão em tempo real**: cada sessão carrega uma "versão" gravada no banco. Trocar a senha, desativar um usuário, ou usar o botão **"Encerrar sessões"** (na aba Usuários) incrementa essa versão e derruba imediatamente qualquer sessão já aberta daquele usuário — sem isso, a sessão antiga continuaria válida até expirar sozinha.
 - Mensagens de erro de login são genéricas ("Credenciais inválidas") tanto para login inexistente quanto senha errada quanto conta desativada, para não revelar quais contas existem.
 - **Último login** de cada usuário fica visível na aba Usuários, para o administrador identificar contas ativas, esquecidas ou com uso fora do padrão.
